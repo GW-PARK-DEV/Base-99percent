@@ -16,7 +16,7 @@ export class ProductAnalysisService {
     private readonly jsonService: JsonService,
     private readonly base64Service: Base64Service,
   ) {
-    const promptsDir = join(__dirname, 'prompts');
+    const promptsDir = join(process.cwd(), 'public', 'prompts', 'product-analysis');
     const prompt = readFileSync(join(promptsDir, 'product-analysis.md'), 'utf-8');
     const example = this.jsonService.readFromDir(promptsDir, 'product-analysis.json');
     this.systemPrompt = `${prompt}\n\n응답 형식 예시:\n\`\`\`json\n${JSON.stringify(example, null, 2)}\n\`\`\``;

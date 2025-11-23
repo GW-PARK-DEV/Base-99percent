@@ -12,7 +12,7 @@ export class ProductAnalysisController {
   @Post('analyze')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FilesInterceptor('images', 10))
-  @ApiOperation({ summary: '물건 상태 분석', description: '이미지와 텍스트를 바탕으로 중고거래용 물건의 상태를 분석합니다.' })
+  @ApiOperation({ summary: '물건 상태 분석', description: '이미지와 텍스트를 바탕으로 물건의 상태를 분석합니다.' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ type: ProductAnalysisDto })
   @ApiResponse({ status: 200, description: '분석 성공', type: ProductAnalysisResponseDto })
@@ -28,4 +28,3 @@ export class ProductAnalysisController {
     return this.productAnalysisService.analyzeProduct(files, dto);
   }
 }
-
