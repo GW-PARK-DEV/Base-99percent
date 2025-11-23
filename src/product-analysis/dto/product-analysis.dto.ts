@@ -25,6 +25,12 @@ export class ProductAnalysisDto {
 
 export class ProductAnalysisResponseDto {
   @ApiProperty({
+    description: '물건 이름',
+    example: '아이폰 13 프로',
+  })
+  name: string;
+
+  @ApiProperty({
     description: '상태 분석 설명',
     example: '물건이 전반적으로 양호한 상태입니다. 약간의 사용감이 있지만 기능적으로는 문제가 없어 보입니다.',
   })
