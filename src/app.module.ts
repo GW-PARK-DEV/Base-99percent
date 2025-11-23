@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { X402Module } from './x402/x402.module';
+import { OpenRouterAIModule } from './ai/openrouter-ai.module';
 
 @Module({
   imports: [
     X402Module.forRoot({
       facilitatorUrl: process.env.X402_FACILITATOR_URL,
     }),
+    OpenRouterAIModule,
   ],
   controllers: [AppController],
   providers: [AppService],
