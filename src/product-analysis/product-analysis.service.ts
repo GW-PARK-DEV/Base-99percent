@@ -7,7 +7,6 @@ import { Base64Service } from '../base64/base64.service';
 import { ProductAnalysisDto, ProductAnalysisResponseDto } from './dto/product-analysis.dto';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 
-/** 중고거래용 물건 상태 분석 서비스 */
 @Injectable()
 export class ProductAnalysisService {
   private readonly systemPrompt: string;
@@ -25,41 +24,25 @@ export class ProductAnalysisService {
 
   /** 이미지와 텍스트를 바탕으로 물건 상태 분석 */
   async analyzeProduct(files: Express.Multer.File[], dto: ProductAnalysisDto): Promise<ProductAnalysisResponseDto> {
-    const imageContents = files.map(file => {
-      const base64 = this.base64Service.encodeFromFile(file);
-      const mimeType = file.mimetype || 'image/jpeg';
-      return {
-        type: 'image_url' as const,
-        image_url: {
-          url: `data:${mimeType};base64,${base64}`,
-        },
-      };
-    });
-
-    const textParts: string[] = [];
-    if (dto.description) {
-      textParts.push(`판매자 설명: ${dto.description}`);
-    }
+    const imageContents = files.map(file => ({
+      type: 'image_url' as const,
+      image_url: {
+        url: `data:${file.mimetype || 'image/jpeg'};base64,${this.base64Service.encodeFromFile(file)}`,
+      },
+    }));
 
     const content: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }> = [];
 
-    if (textParts.length > 0) {
-      content.push({ type: 'text', text: textParts.join('\n') });
+    if (dto.description) {
+      content.push({ type: 'text', text: `판매자가 제공한 물건 설명: ${dto.description}` });
     }
 
     content.push(...imageContents);
 
-    const messages = [
-      new SystemMessage(this.systemPrompt),
-      new HumanMessage({
-        content,
-      }),
-    ];
-
-    const response = await this.aiService.invoke(messages, {
-      model: 'google/gemini-2.0-flash-exp:free',
-      temperature: 0.3,
-    });
+    const response = await this.aiService.invoke(
+      [new SystemMessage(this.systemPrompt), new HumanMessage({ content })],
+      { model: 'google/gemini-2.5-pro', temperature: 0.3 },
+    );
 
     const result = this.parseJSON<ProductAnalysisResponseDto>(response);
     if (!result) {
