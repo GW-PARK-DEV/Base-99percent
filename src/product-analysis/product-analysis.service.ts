@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { OpenRouterAIService } from '../ai/openrouter-ai.service';
 import { JsonService } from '../json/json.service';
+import { Base64Service } from '../base64/base64.service';
 import { ProductAnalysisDto, ProductAnalysisResponseDto } from './dto/product-analysis.dto';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 
@@ -14,6 +15,7 @@ export class ProductAnalysisService {
   constructor(
     private readonly aiService: OpenRouterAIService,
     private readonly jsonService: JsonService,
+    private readonly base64Service: Base64Service,
   ) {
     const promptsDir = join(__dirname, 'prompts');
     const prompt = readFileSync(join(promptsDir, 'product-analysis.md'), 'utf-8');
@@ -22,20 +24,21 @@ export class ProductAnalysisService {
   }
 
   /** 이미지와 텍스트를 바탕으로 물건 상태 분석 */
-  async analyzeProduct(dto: ProductAnalysisDto): Promise<ProductAnalysisResponseDto> {
-    const imageContents = dto.images.map(imageBase64 => ({
-      type: 'image_url' as const,
-      image_url: {
-        url: imageBase64,
-      },
-    }));
+  async analyzeProduct(files: Express.Multer.File[], dto: ProductAnalysisDto): Promise<ProductAnalysisResponseDto> {
+    const imageContents = files.map(file => {
+      const base64 = this.base64Service.encodeFromFile(file);
+      const mimeType = file.mimetype || 'image/jpeg';
+      return {
+        type: 'image_url' as const,
+        image_url: {
+          url: `data:${mimeType};base64,${base64}`,
+        },
+      };
+    });
 
     const textParts: string[] = [];
     if (dto.description) {
       textParts.push(`판매자 설명: ${dto.description}`);
-    }
-    if (dto.category) {
-      textParts.push(`카테고리: ${dto.category}`);
     }
 
     const content: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }> = [];
