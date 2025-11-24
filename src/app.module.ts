@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { X402Module } from './x402/x402.module';
 import { OpenRouterAIModule } from './ai/openrouter-ai.module';
+import { FlockAIModule } from './ai/flock-ai.module';
 import { GoogleSearchModule } from './google-search/google-search.module';
 import { ProductAnalysisModule } from './product-analysis/product-analysis.module';
 import { JsonModule } from './json/json.module';
@@ -17,6 +18,7 @@ import { RedisModule } from './redis/redis.module';
       facilitatorUrl: process.env.X402_FACILITATOR_URL,
     }),
     OpenRouterAIModule,
+    FlockAIModule,
     GoogleSearchModule,
     JsonModule,
     ProductAnalysisModule,
