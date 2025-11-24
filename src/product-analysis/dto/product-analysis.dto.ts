@@ -1,17 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsArray, IsNotEmpty } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class ProductAnalysisDto {
-  @ApiProperty({
-    description: '물건 이미지 파일 (최대 10개)',
-    type: 'array',
-    items: { type: 'string', format: 'binary' },
-    required: true,
-  })
-  @IsNotEmpty()
-  @IsArray()
-  images: Express.Multer.File[];
-
   @ApiProperty({
     type: 'string',
     description: '판매자가 제공한 물건 설명',
