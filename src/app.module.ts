@@ -13,6 +13,8 @@ import { BunjangSearchModule } from './bunjang-search/bunjang-search.module';
 import { RedisModule } from './redis/redis.module';
 import { QueueModule } from './queue/queue.module';
 import { S3Module } from './s3/s3.module';
+import { QuickAuthModule } from './quick-auth/quick-auth.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { S3Module } from './s3/s3.module';
     RedisModule,
     QueueModule,
     S3Module,
+    QuickAuthModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService],
