@@ -44,21 +44,12 @@ export class ProductAnalysisService {
       { model: 'google/gemini-2.5-pro', temperature: 0.3 },
     );
 
-    const result = this.parseJSON<ProductAnalysisResponseDto>(response);
+    const result = this.jsonService.parseFromCodeBlock<ProductAnalysisResponseDto>(response);
     if (!result) {
       throw new Error('물건 상태 분석에 실패했습니다.');
     }
 
     return result;
-  }
-
-  private parseJSON<T>(text: string): T | null {
-    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
-    try {
-      return JSON.parse(jsonMatch ? jsonMatch[1] : text) as T;
-    } catch {
-      return null;
-    }
   }
 }
 

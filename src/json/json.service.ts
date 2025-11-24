@@ -19,5 +19,15 @@ export class JsonService {
   parse<T = any>(text: string): T {
     return JSON.parse(text) as T;
   }
+
+  /** 코드 블록에서 JSON 추출 및 파싱 */
+  parseFromCodeBlock<T = any>(text: string): T | null {
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
+    try {
+      return JSON.parse(jsonMatch ? jsonMatch[1] : text) as T;
+    } catch {
+      return null;
+    }
+  }
 }
 

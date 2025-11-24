@@ -45,3 +45,11 @@ export class ProductAnalysisResponseDto {
   @ApiProperty({ description: '사용감 정도', example: '사용감 있음' })
   usageLevel: string;
 }
+
+export class ProductAnalysisWithPriceResponseDto extends ProductAnalysisResponseDto {
+  @ApiProperty({ description: '적정 가격', example: 850000 })
+  recommendedPrice: number;
+
+  @ApiProperty({ description: '가격 선정 이유', example: '유사한 상태의 거래 물품 15건을 분석한 결과, 적정가는 약 85만원으로 추정됩니다.' })
+  priceReason: string;
+}
