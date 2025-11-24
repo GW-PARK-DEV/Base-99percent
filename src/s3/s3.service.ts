@@ -65,4 +65,20 @@ export class S3Service {
     }
     return Buffer.from(await response.Body.transformToByteArray());
   }
+
+  async downloadFileFromS3Path(s3Path: string): Promise<Express.Multer.File> {
+    const [, bucket, ...keyParts] = s3Path.split('/');
+    const key = keyParts.join('/');
+    const filename = keyParts[keyParts.length - 1];
+    const buffer = await this.downloadFile(bucket, key);
+
+    return {
+      buffer,
+      mimetype: 'image/jpeg',
+      originalname: filename,
+      fieldname: 'images',
+      encoding: '7bit',
+      size: buffer.length,
+    } as Express.Multer.File;
+  }
 }
