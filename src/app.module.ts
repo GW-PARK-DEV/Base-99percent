@@ -10,6 +10,7 @@ import { ProductAnalysisModule } from './product-analysis/product-analysis.modul
 import { JsonModule } from './json/json.module';
 import { BunjangSearchModule } from './bunjang-search/bunjang-search.module';
 import { RedisModule } from './redis/redis.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { RedisModule } from './redis/redis.module';
     ProductAnalysisModule,
     BunjangSearchModule,
     RedisModule,
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [AppService],
