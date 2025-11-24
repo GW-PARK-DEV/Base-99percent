@@ -8,6 +8,7 @@ import { GoogleSearchModule } from './google-search/google-search.module';
 import { ProductAnalysisModule } from './product-analysis/product-analysis.module';
 import { JsonModule } from './json/json.module';
 import { BunjangSearchModule } from './bunjang-search/bunjang-search.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BunjangSearchModule } from './bunjang-search/bunjang-search.module';
     JsonModule,
     ProductAnalysisModule,
     BunjangSearchModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],
