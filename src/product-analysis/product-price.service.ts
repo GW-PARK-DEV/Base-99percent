@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { OpenRouterAIService } from '../ai/openrouter-ai.service';
+import { FlockAIService } from '../ai/flock-ai.service';
 import { JsonService } from '../json/json.service';
 import { GoogleSearchService } from '../google-search/google-search.service';
 import { BunjangSearchService } from '../bunjang-search/bunjang-search.service';
@@ -13,7 +13,7 @@ export class ProductPriceService {
   private readonly systemPrompt: string;
 
   constructor(
-    private readonly aiService: OpenRouterAIService,
+    private readonly aiService: FlockAIService,
     private readonly jsonService: JsonService,
     private readonly googleSearchService: GoogleSearchService,
     private readonly bunjangSearchService: BunjangSearchService,
@@ -33,7 +33,6 @@ export class ProductPriceService {
     const prompt = this.buildPrompt(analysis, bunjangResults, googleResults);
     const response = await this.aiService.invoke(
       [new SystemMessage(this.systemPrompt), new HumanMessage(prompt)],
-      { model: 'google/gemini-2.5-pro', temperature: 0.3 },
     );
 
     const priceData = this.jsonService.parseFromCodeBlock<{ recommendedPrice: number; priceReason: string }>(response);

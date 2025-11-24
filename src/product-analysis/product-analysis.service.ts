@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { OpenRouterAIService } from '../ai/openrouter-ai.service';
+import { FlockAIService } from '../ai/flock-ai.service';
 import { JsonService } from '../json/json.service';
 import { Base64Service } from '../base64/base64.service';
 import { ProductAnalysisDto, ProductAnalysisResponseDto } from './dto/product-analysis.dto';
@@ -12,7 +12,7 @@ export class ProductAnalysisService {
   private readonly systemPrompt: string;
 
   constructor(
-    private readonly aiService: OpenRouterAIService,
+    private readonly aiService: FlockAIService,
     private readonly jsonService: JsonService,
     private readonly base64Service: Base64Service,
   ) {
@@ -41,7 +41,6 @@ export class ProductAnalysisService {
 
     const response = await this.aiService.invoke(
       [new SystemMessage(this.systemPrompt), new HumanMessage({ content })],
-      { model: 'google/gemini-2.5-pro', temperature: 0.3 },
     );
 
     const result = this.jsonService.parseFromCodeBlock<ProductAnalysisResponseDto>(response);

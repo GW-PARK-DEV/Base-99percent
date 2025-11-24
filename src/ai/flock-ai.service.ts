@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatOpenAI } from '@langchain/openai';
-import { SystemMessage, HumanMessage } from '@langchain/core/messages';
+import { SystemMessage, HumanMessage, BaseMessage } from '@langchain/core/messages';
 
 @Injectable()
 export class FlockAIService {
@@ -21,6 +21,11 @@ export class FlockAIService {
 
   async generate(systemPrompt: string, userMessage: string): Promise<string> {
     const messages = [new SystemMessage(systemPrompt), new HumanMessage(userMessage)];
+    const response = await this.model.invoke(messages);
+    return (response as { content?: string })?.content || String(response);
+  }
+
+  async invoke(messages: BaseMessage[]): Promise<string> {
     const response = await this.model.invoke(messages);
     return (response as { content?: string })?.content || String(response);
   }
