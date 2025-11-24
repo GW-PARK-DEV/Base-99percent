@@ -7,6 +7,7 @@ import { OpenRouterAIModule } from './ai/openrouter-ai.module';
 import { GoogleSearchModule } from './google-search/google-search.module';
 import { ProductAnalysisModule } from './product-analysis/product-analysis.module';
 import { JsonModule } from './json/json.module';
+import { BunjangSearchModule } from './bunjang-search/bunjang-search.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { JsonModule } from './json/json.module';
     GoogleSearchModule,
     JsonModule,
     ProductAnalysisModule,
+    BunjangSearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],
