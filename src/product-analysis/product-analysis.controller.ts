@@ -2,19 +2,17 @@ import { Controller, Post, UploadedFiles, UseInterceptors, BadRequestException, 
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { ProductAnalysisService } from './product-analysis.service';
-import { ProductPriceService } from './product-price.service';
-import {
-  ProductAnalysisDto,
-  ProductAnalysisResponseDto,
-  ProductAnalysisWithPriceResponseDto,
-} from './dto/product-analysis.dto';
+import { QueueService } from '../queue/queue.service';
+import { S3Service } from '../s3/s3.service';
+import { ProductAnalysisDto, ProductAnalysisResponseDto } from './dto/product-analysis.dto';
 
 @ApiTags('product-analysis')
 @Controller('product-analysis')
 export class ProductAnalysisController {
   constructor(
     private readonly productAnalysisService: ProductAnalysisService,
-    private readonly productPriceService: ProductPriceService,
+    private readonly queueService: QueueService,
+    private readonly s3Service: S3Service,
   ) {}
 
   @Post('analyze')
@@ -79,16 +77,28 @@ export class ProductAnalysisController {
       required: ['images'],
     },
   })
-  @ApiResponse({ status: 201, type: ProductAnalysisWithPriceResponseDto })
+  @ApiResponse({ status: 201, description: '성공', schema: { type: 'boolean', example: true } })
   @ApiResponse({ status: 400 })
   async analyzeProductWithPrice(
     @UploadedFiles() files: Express.Multer.File[],
     @Body() dto: ProductAnalysisDto,
-  ): Promise<ProductAnalysisWithPriceResponseDto> {
+  ): Promise<boolean> {
     if (!files || files.length === 0) {
       throw new BadRequestException('이미지 파일이 필요합니다.');
     }
-    const analysis = await this.productAnalysisService.analyzeProduct(files, dto);
-    return this.productPriceService.calculatePrice(analysis);
+
+    // 파일을 S3에 업로드하고 큐에 작업 추가
+    const s3Paths = await Promise.all(
+      files.map(async (file) => {
+        const key = `product/${Date.now()}-${Math.random().toString(36).substring(7)}-${file.originalname}`;
+        await this.s3Service.uploadFile('snuai', key, file.buffer, file.mimetype);
+        return `s3://snuai/${key}`;
+      })
+    );
+
+    const queue = this.queueService.getQueue('product-analysis');
+    await queue.add('analyze', { s3Paths, dto });
+
+    return true;
   }
 }
