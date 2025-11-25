@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProductAnalysisService } from './product-analysis.service';
@@ -12,6 +12,8 @@ import { ProductAnalysisJobData } from './interfaces/product-analysis-job-data.i
 @Processor('product-analysis')
 @Injectable()
 export class ProductAnalysisProcessor extends WorkerHost {
+  private readonly logger = new Logger(ProductAnalysisProcessor.name);
+
   constructor(
     @InjectRepository(ProductAnalysis)
     private readonly productAnalysisRepository: Repository<ProductAnalysis>,
@@ -24,14 +26,25 @@ export class ProductAnalysisProcessor extends WorkerHost {
 
   async process(job: Job<ProductAnalysisJobData>) {
     const { s3Paths, dto } = job.data;
+    const jobId = job.id;
+    this.logger.log(`[${jobId}] 작업 시작`);
 
-    const files = await Promise.all(s3Paths.map((path) => this.s3Service.downloadFileFromS3Path(path)));
-    const analysis = await this.productAnalysisService.analyzeProduct(files, dto);
-    const result = await this.productPriceService.calculatePrice(analysis);
+    try {
+      const files = await Promise.all(s3Paths.map((path) => this.s3Service.downloadFileFromS3Path(path)));
+      this.logger.log(`[${jobId}] 파일 다운로드 완료`);
 
-    const entity = await this.productAnalysisRepository.save(this.productAnalysisRepository.create(result));
+      const analysis = await this.productAnalysisService.analyzeProduct(files, dto);
+      this.logger.log(`[${jobId}] 제품 분석 완료`);
 
-    return { success: true, id: entity.id };
+      const result = await this.productPriceService.calculatePrice(analysis);
+      this.logger.log(`[${jobId}] 가격 계산 완료`);
+
+      const entity = await this.productAnalysisRepository.save(this.productAnalysisRepository.create(result));
+      this.logger.log(`[${jobId}] 저장 완료 (ID: ${entity.id})`);
+    } catch (error) {
+      this.logger.error(`[${jobId}] 작업 실패: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 }
 

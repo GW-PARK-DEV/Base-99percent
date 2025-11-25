@@ -17,13 +17,13 @@ export class ProductAnalysis {
   @Column({ type: 'text', array: true, default: [] })
   positives: string[];
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true, name: 'usage_level' })
   usageLevel: string;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: true, name: 'recommended_price' })
   recommendedPrice: number;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'price_reason' })
   priceReason: string;
 }
 
