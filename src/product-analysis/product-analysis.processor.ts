@@ -24,12 +24,12 @@ export class ProductAnalysisProcessor extends WorkerHost {
   }
 
   async process(job: Job<ProductAnalysisJobData>) {
-    const { s3Paths, dto } = job.data;
+    const { s3Paths, dto, itemId } = job.data;
 
     const files = await Promise.all(s3Paths.map((path) => this.s3Service.downloadFileFromS3Path(path)));
     const analysis = await this.productAnalysisService.analyzeProduct(files, dto);
     const result = await this.productPriceService.calculatePrice(analysis);
-    await this.productAnalysisRepository.save(this.productAnalysisRepository.create(result));
+    await this.productAnalysisRepository.save(this.productAnalysisRepository.create({ ...result, itemId }));
   }
 }
 

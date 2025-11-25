@@ -15,6 +15,7 @@ import { QueueModule } from './queue/queue.module';
 import { S3Module } from './s3/s3.module';
 import { QuickAuthModule } from './quick-auth/quick-auth.module';
 import { UserModule } from './user/user.module';
+import { ItemModule } from './item/item.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { UserModule } from './user/user.module';
     S3Module,
     QuickAuthModule,
     UserModule,
+    ItemModule,
   ],
   controllers: [AppController],
   providers: [AppService],

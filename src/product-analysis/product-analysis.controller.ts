@@ -31,13 +31,18 @@ export class ProductAnalysisController {
           },
           description: '물건 이미지 파일 (최대 10개)',
         },
+        itemId: {
+          type: 'number',
+          description: '아이템 ID',
+          example: 1,
+        },
         description: {
           type: 'string',
           description: '판매자가 제공한 물건 설명',
           example: '아이폰 13 프로, 1년 사용, 상태 양호',
         },
       },
-      required: ['images'],
+      required: ['images', 'itemId'],
     },
   })
   @ApiResponse({ status: 201, type: ProductAnalysisResponseDto })
@@ -68,13 +73,18 @@ export class ProductAnalysisController {
           },
           description: '물건 이미지 파일 (최대 10개)',
         },
+        itemId: {
+          type: 'number',
+          description: '아이템 ID',
+          example: 1,
+        },
         description: {
           type: 'string',
           description: '판매자가 제공한 물건 설명',
           example: '아이폰 13 프로, 1년 사용, 상태 양호',
         },
       },
-      required: ['images'],
+      required: ['images', 'itemId'],
     },
   })
   @ApiResponse({ status: 201, description: '성공', schema: { type: 'boolean', example: true } })
@@ -97,7 +107,7 @@ export class ProductAnalysisController {
     );
 
     const queue = this.queueService.getQueue('product-analysis');
-    await queue.add('analyze', { s3Paths, dto });
+    await queue.add('analyze', { s3Paths, dto, itemId: dto.itemId });
 
     return true;
   }

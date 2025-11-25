@@ -25,5 +25,8 @@ export class ProductAnalysis {
 
   @Column({ type: 'text', nullable: true, name: 'price_reason' })
   priceReason: string;
+
+  @Column({ type: 'bigint', name: 'item_id' })
+  itemId: number;
 }
 
