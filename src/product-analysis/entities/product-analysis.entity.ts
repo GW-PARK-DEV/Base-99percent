@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { Item } from '../../item/entities/item.entity';
 
 @Entity('product_analysis')
 export class ProductAnalysis {
@@ -28,5 +36,12 @@ export class ProductAnalysis {
 
   @Column({ type: 'bigint', name: 'item_id' })
   itemId: number;
+
+  @ManyToOne(() => Item, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'item_id' })
+  item: Item;
+
+  @CreateDateColumn({ name: 'created_at', nullable: true })
+  createdAt: Date;
 }
 

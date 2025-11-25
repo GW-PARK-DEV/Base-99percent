@@ -32,4 +32,3 @@ export class ProductAnalysisProcessor extends WorkerHost {
     await this.productAnalysisRepository.save(this.productAnalysisRepository.create({ ...result, itemId }));
   }
 }
-
