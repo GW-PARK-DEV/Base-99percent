@@ -5,12 +5,14 @@ import { TradeService } from './trade.service';
 import { TradeController } from './trade.controller';
 import { ItemModule } from '../item/item.module';
 import { UserModule } from '../user/user.module';
+import { PointModule } from '../point/point.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Trade]),
     ItemModule,
     UserModule,
+    PointModule,
   ],
   providers: [TradeService],
   controllers: [TradeController],

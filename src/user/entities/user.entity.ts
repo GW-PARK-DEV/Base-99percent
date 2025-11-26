@@ -1,12 +1,9 @@
-import { Entity, PrimaryColumn, CreateDateColumn, Column } from 'typeorm';
+import { Entity, PrimaryColumn, CreateDateColumn } from 'typeorm';
 
 @Entity('users')
 export class User {
   @PrimaryColumn({ type: 'bigint' })
   id: number;
-
-  @Column({ type: 'text', name: 'wallet_address', nullable: true })
-  walletAddress: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

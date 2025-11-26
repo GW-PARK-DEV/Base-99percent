@@ -6,6 +6,7 @@ import { Trade } from './entities/trade.entity';
 import { ItemService } from '../item/item.service';
 import { UserService } from '../user/user.service';
 import { X402Service } from '../x402/x402.service';
+import { PointService } from '../point/point.service';
 import { CreateTradeDto } from './dto/trade.dto';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class TradeService {
     private readonly itemService: ItemService,
     private readonly userService: UserService,
     private readonly x402Service: X402Service,
+    private readonly pointService: PointService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -38,21 +40,24 @@ export class TradeService {
       throw new ForbiddenException('자신의 아이템은 구매할 수 없습니다.');
     }
 
-    // 판매자 지갑 주소 확인
+    // 판매자 존재 확인
     const seller = await this.userService.findById(sellerId);
     if (!seller) {
       throw new NotFoundException('판매자를 찾을 수 없습니다.');
     }
-    if (!seller.walletAddress) {
-      throw new BadRequestException('판매자의 지갑 주소가 등록되지 않았습니다.');
+
+    // 서버 지갑 주소 가져오기
+    const serverWalletAddress = this.configService.get<string>('X402_SERVER_WALLET_ADDRESS');
+    if (!serverWalletAddress) {
+      throw new BadRequestException('서버 지갑 주소가 설정되지 않았습니다.');
     }
 
-    // 결제 검증 및 구매자 지갑 주소 추출
-    const network = this.configService.get<string>('X402_NETWORK', 'base');
+    // 결제 검증
+    const network = this.configService.get<string>('X402_NETWORK', 'base-sepolia');
     const paymentConfig = {
-      price: dto.price.toString(),
+      price: `$${(dto.price / 1000000).toFixed(6)}`, // price를 달러로 변환 (예: 1000000 = $1.000000)
       network,
-      recipientAddress: seller.walletAddress,
+      recipientAddress: serverWalletAddress,
       description: `아이템 #${dto.itemId} 구매`,
     };
 
@@ -67,22 +72,6 @@ export class TradeService {
       throw new BadRequestException('결제 검증에 실패했습니다.');
     }
 
-    // 구매자 지갑 주소 추출 및 저장
-    const walletAddress = this.x402Service.extractWalletAddress(paymentHeader);
-    if (!walletAddress) {
-      throw new BadRequestException('결제 정보에서 지갑 주소를 추출할 수 없습니다.');
-    }
-
-    const buyer = await this.userService.findById(buyerId);
-    if (!buyer) {
-      throw new NotFoundException('구매자를 찾을 수 없습니다.');
-    }
-
-    // 구매자 지갑 주소가 없으면 추가
-    if (!buyer.walletAddress) {
-      await this.userService.updateWalletAddress(buyerId, walletAddress);
-    }
-
     // 거래 생성
     const trade = this.tradeRepository.create({
       itemId: dto.itemId,
@@ -91,7 +80,16 @@ export class TradeService {
       price: dto.price,
     });
 
-    return this.tradeRepository.save(trade);
+    const savedTrade = await this.tradeRepository.save(trade);
+
+    // 판매자 포인트 증가
+    await this.pointService.addPoints(
+      sellerId,
+      dto.price,
+      `아이템 #${dto.itemId} 판매`,
+    );
+
+    return savedTrade;
   }
 
   async getPaymentInstructions(
@@ -105,20 +103,17 @@ export class TradeService {
       throw new NotFoundException('아이템을 찾을 수 없습니다.');
     }
 
-    // 판매자 지갑 주소 확인
-    const seller = await this.userService.findById(item.userId);
-    if (!seller) {
-      throw new NotFoundException('판매자를 찾을 수 없습니다.');
-    }
-    if (!seller.walletAddress) {
-      throw new BadRequestException('판매자의 지갑 주소가 등록되지 않았습니다.');
+    // 서버 지갑 주소 가져오기
+    const serverWalletAddress = this.configService.get<string>('X402_SERVER_WALLET_ADDRESS');
+    if (!serverWalletAddress) {
+      throw new BadRequestException('서버 지갑 주소가 설정되지 않았습니다.');
     }
 
-    const network = this.configService.get<string>('X402_NETWORK', 'base');
+    const network = this.configService.get<string>('X402_NETWORK', 'base-sepolia');
     const paymentConfig = {
-      price: price.toString(),
+      price: `$${(price / 1000000).toFixed(6)}`, // price를 달러로 변환
       network,
-      recipientAddress: seller.walletAddress,
+      recipientAddress: serverWalletAddress,
       description: `아이템 #${itemId} 구매`,
     };
 
