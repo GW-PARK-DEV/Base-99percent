@@ -23,9 +23,15 @@ interface ChatAIResponse {
   needsSellerEmail: boolean;
 }
 
+interface EmailContent {
+  subject: string;
+  text: string;
+}
+
 @Injectable()
 export class ChatService {
   private readonly systemPrompt: string;
+  private readonly emailPrompt: string;
 
   constructor(
     @InjectRepository(Chat)
@@ -44,6 +50,10 @@ export class ChatService {
     const prompt = readFileSync(join(promptsDir, 'chat.md'), 'utf-8');
     const example = this.jsonService.readFromDir(promptsDir, 'chat.json');
     this.systemPrompt = `${prompt}\n\n응답 형식 예시:\n\`\`\`json\n${JSON.stringify(example, null, 2)}\n\`\`\``;
+
+    const emailPromptText = readFileSync(join(promptsDir, 'email.md'), 'utf-8');
+    const emailExample = this.jsonService.readFromDir(promptsDir, 'email.json');
+    this.emailPrompt = `${emailPromptText}\n\n응답 형식 예시:\n\`\`\`json\n${JSON.stringify(emailExample, null, 2)}\n\`\`\``;
   }
 
   async createChat(buyerId: number, itemId: number): Promise<Chat> {
@@ -242,12 +252,37 @@ ${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}
     }
 
     try {
-      const subject = `[99percent] 구매자 문의가 도착했습니다 - 아이템 #${chat.itemId}`;
-      const text = `구매자님으로부터 다음 문의가 도착했습니다:\n\n"${buyerMessage.message || ''}"\n\n이 질문에 대한 답변을 부탁드립니다.\n채팅 ID: ${chat.id}\n아이템 ID: ${chat.itemId}`;
-      await this.emailService.sendEmail(seller.email, subject, text);
+      const emailContent = await this.generateEmailContent(chat, buyerMessage);
+      await this.emailService.sendEmail(seller.email, emailContent.subject, emailContent.text);
     } catch (error) {
       console.error('판매자에게 이메일 전송 실패:', error);
     }
+  }
+
+  private async generateEmailContent(chat: Chat, buyerMessage: Message): Promise<EmailContent> {
+    const messages = await this.messageRepository.find({
+      where: { chatId: chat.id },
+      order: { createdAt: 'ASC' },
+    });
+
+    const chatHistory = messages
+      .map(msg => `[${msg.senderId === chat.buyerId ? '구매자' : '판매자'}] ${msg.message}`)
+      .join('\n');
+
+    const contextPrompt = `채팅 ID: ${chat.id}\n아이템 ID: ${chat.itemId}\n\n채팅 내역:\n${chatHistory}`;
+
+    const response = await this.flockAIService.invoke([
+      new SystemMessage(this.emailPrompt),
+      new HumanMessage(contextPrompt),
+    ]);
+
+    const emailContent = this.jsonService.parseFromCodeBlock<EmailContent>(response);
+    
+    if (!emailContent || !emailContent.subject || !emailContent.text) {
+      throw new BadRequestException('이메일 내용 생성에 실패했습니다.');
+    }
+
+    return emailContent;
   }
 
   async getChat(chatId: number, userId: number): Promise<Chat> {

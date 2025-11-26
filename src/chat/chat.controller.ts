@@ -20,6 +20,7 @@ import {
   ChatResponseDto,
   MessageResponseDto,
   ChatWithMessagesResponseDto,
+  SuccessResponseDto,
 } from './dto/chat.dto';
 
 @ApiTags('chat')
@@ -30,39 +31,23 @@ export class ChatController {
     private readonly userService: UserService,
   ) {}
 
+  private async getUserId(req: any): Promise<number> {
+    const user = await this.userService.findOrCreate(req.user.fid);
+    return user.id;
+  }
+
   @Post()
   @UseGuards(QuickAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({ summary: '채팅 생성' })
-  @ApiResponse({
-    status: 201,
-    description: '채팅 생성 성공',
-    type: ChatResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 토큰이 없거나 유효하지 않음',
-  })
-  @ApiResponse({
-    status: 403,
-    description: '자신의 아이템에는 채팅을 시작할 수 없음',
-  })
-  @ApiResponse({
-    status: 404,
-    description: '아이템을 찾을 수 없음',
-  })
-  async createChat(@Body() dto: CreateChatDto, @Request() req: any): Promise<ChatResponseDto> {
-    const user = await this.userService.findOrCreate(req.user.fid);
-    const chat = await this.chatService.createChat(user.id, dto.itemId);
-
-    return {
-      id: chat.id,
-      itemId: chat.itemId,
-      sellerId: chat.sellerId,
-      buyerId: chat.buyerId,
-      createdAt: chat.createdAt,
-    };
+  @ApiResponse({ status: 201, type: SuccessResponseDto })
+  @ApiResponse({ status: 401 })
+  @ApiResponse({ status: 403 })
+  @ApiResponse({ status: 404 })
+  async createChat(@Body() dto: CreateChatDto, @Request() req: any): Promise<SuccessResponseDto> {
+    await this.chatService.createChat(await this.getUserId(req), dto.itemId);
+    return { success: true };
   }
 
   @Post(':chatId/messages')
@@ -70,121 +55,57 @@ export class ChatController {
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({ summary: '메시지 전송' })
-  @ApiResponse({
-    status: 201,
-    description: '메시지 전송 성공',
-    type: MessageResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 토큰이 없거나 유효하지 않음',
-  })
-  @ApiResponse({
-    status: 403,
-    description: '이 채팅에 메시지를 보낼 권한이 없음',
-  })
-  @ApiResponse({
-    status: 404,
-    description: '채팅을 찾을 수 없음',
-  })
+  @ApiResponse({ status: 201, type: SuccessResponseDto })
+  @ApiResponse({ status: 401 })
+  @ApiResponse({ status: 403 })
+  @ApiResponse({ status: 404 })
   async sendMessage(
     @Param('chatId', ParseIntPipe) chatId: number,
     @Body() dto: SendMessageDto,
     @Request() req: any,
-  ): Promise<{ message: MessageResponseDto; aiResponse?: MessageResponseDto; needsSellerResponse: boolean }> {
-    const user = await this.userService.findOrCreate(req.user.fid);
-    const result = await this.chatService.sendMessage(chatId, user.id, dto.message);
-
-    const response: any = {
-      message: {
-        id: result.message.id,
-        chatId: result.message.chatId,
-        senderId: result.message.senderId,
-        message: result.message.message,
-        createdAt: result.message.createdAt,
-      },
-      needsSellerResponse: result.needsSellerResponse,
-    };
-
-    if (result.aiResponse) {
-      response.aiResponse = {
-        id: result.aiResponse.id,
-        chatId: result.aiResponse.chatId,
-        senderId: result.aiResponse.senderId,
-        message: result.aiResponse.message,
-        createdAt: result.aiResponse.createdAt,
-      };
-    }
-
-    return response;
+  ): Promise<SuccessResponseDto> {
+    await this.chatService.sendMessage(chatId, await this.getUserId(req), dto.message);
+    return { success: true };
   }
 
   @Get()
   @UseGuards(QuickAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '사용자의 채팅 목록 조회' })
-  @ApiResponse({
-    status: 200,
-    description: '채팅 목록 조회 성공',
-    type: [ChatResponseDto],
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 토큰이 없거나 유효하지 않음',
-  })
+  @ApiResponse({ status: 200, type: [ChatResponseDto] })
+  @ApiResponse({ status: 401 })
   async getUserChats(@Request() req: any): Promise<ChatResponseDto[]> {
-    const user = await this.userService.findOrCreate(req.user.fid);
-    const chats = await this.chatService.getUserChats(user.id);
-
-    return chats.map((chat) => ({
-      id: chat.id,
-      itemId: chat.itemId,
-      sellerId: chat.sellerId,
-      buyerId: chat.buyerId,
-      createdAt: chat.createdAt,
+    const chats = await this.chatService.getUserChats(await this.getUserId(req));
+    return chats.map(({ id, itemId, sellerId, buyerId, createdAt }) => ({
+      id,
+      itemId,
+      sellerId,
+      buyerId,
+      createdAt,
     }));
   }
 
   @Get(':chatId')
   @UseGuards(QuickAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '채팅 상세 조회 (메시지 포함)' })
-  @ApiResponse({
-    status: 200,
-    description: '채팅 상세 조회 성공',
-    type: ChatWithMessagesResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 토큰이 없거나 유효하지 않음',
-  })
-  @ApiResponse({
-    status: 403,
-    description: '이 채팅에 접근할 권한이 없음',
-  })
-  @ApiResponse({
-    status: 404,
-    description: '채팅을 찾을 수 없음',
-  })
+  @ApiOperation({ summary: '채팅 상세 조회' })
+  @ApiResponse({ status: 200, type: ChatWithMessagesResponseDto })
+  @ApiResponse({ status: 401 })
+  @ApiResponse({ status: 403 })
+  @ApiResponse({ status: 404 })
   async getChatWithMessages(
     @Param('chatId', ParseIntPipe) chatId: number,
     @Request() req: any,
   ): Promise<ChatWithMessagesResponseDto> {
-    const user = await this.userService.findOrCreate(req.user.fid);
-    const chatWithMessages = await this.chatService.getChatWithMessages(chatId, user.id);
-
+    const chatWithMessages = await this.chatService.getChatWithMessages(chatId, await this.getUserId(req));
     return {
-      id: chatWithMessages.id,
-      itemId: chatWithMessages.itemId,
-      sellerId: chatWithMessages.sellerId,
-      buyerId: chatWithMessages.buyerId,
-      createdAt: chatWithMessages.createdAt,
-      messages: chatWithMessages.messages.map((msg) => ({
-        id: msg.id,
-        chatId: msg.chatId,
-        senderId: msg.senderId,
-        message: msg.message,
-        createdAt: msg.createdAt,
+      ...chatWithMessages,
+      messages: chatWithMessages.messages.map(({ id, chatId, senderId, message, createdAt }) => ({
+        id,
+        chatId,
+        senderId,
+        message,
+        createdAt,
       })),
     };
   }
@@ -193,36 +114,21 @@ export class ChatController {
   @UseGuards(QuickAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '채팅 메시지 목록 조회' })
-  @ApiResponse({
-    status: 200,
-    description: '메시지 목록 조회 성공',
-    type: [MessageResponseDto],
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 토큰이 없거나 유효하지 않음',
-  })
-  @ApiResponse({
-    status: 403,
-    description: '이 채팅에 접근할 권한이 없음',
-  })
-  @ApiResponse({
-    status: 404,
-    description: '채팅을 찾을 수 없음',
-  })
+  @ApiResponse({ status: 200, type: [MessageResponseDto] })
+  @ApiResponse({ status: 401 })
+  @ApiResponse({ status: 403 })
+  @ApiResponse({ status: 404 })
   async getChatMessages(
     @Param('chatId', ParseIntPipe) chatId: number,
     @Request() req: any,
   ): Promise<MessageResponseDto[]> {
-    const user = await this.userService.findOrCreate(req.user.fid);
-    const messages = await this.chatService.getChatMessages(chatId, user.id);
-
-    return messages.map((msg) => ({
-      id: msg.id,
-      chatId: msg.chatId,
-      senderId: msg.senderId,
-      message: msg.message,
-      createdAt: msg.createdAt,
+    const messages = await this.chatService.getChatMessages(chatId, await this.getUserId(req));
+    return messages.map(({ id, chatId, senderId, message, createdAt }) => ({
+      id,
+      chatId,
+      senderId,
+      message,
+      createdAt,
     }));
   }
 }

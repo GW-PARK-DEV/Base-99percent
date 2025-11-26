@@ -2,61 +2,59 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsPositive, IsString, IsNotEmpty } from 'class-validator';
 
 export class CreateChatDto {
-  @ApiProperty({
-    description: '채팅할 아이템 ID',
-    example: 1,
-  })
+  @ApiProperty({ example: 1 })
   @IsInt()
   @IsPositive()
   itemId: number;
 }
 
 export class SendMessageDto {
-  @ApiProperty({
-    description: '메시지 내용',
-    example: '이 상품 할인 되나요?',
-  })
+  @ApiProperty({ example: '이 상품 구매 가능한가요?' })
   @IsString()
   @IsNotEmpty()
   message: string;
 }
 
 export class ChatResponseDto {
-  @ApiProperty({ description: '채팅 ID' })
+  @ApiProperty({ example: 1 })
   id: number;
 
-  @ApiProperty({ description: '아이템 ID' })
+  @ApiProperty({ example: 1 })
   itemId: number;
 
-  @ApiProperty({ description: '판매자 ID' })
+  @ApiProperty({ example: 1 })
   sellerId: number;
 
-  @ApiProperty({ description: '구매자 ID' })
+  @ApiProperty({ example: 2 })
   buyerId: number;
 
-  @ApiProperty({ description: '생성 일시' })
+  @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   createdAt: Date;
 }
 
 export class MessageResponseDto {
-  @ApiProperty({ description: '메시지 ID' })
+  @ApiProperty({ example: 1 })
   id: number;
 
-  @ApiProperty({ description: '채팅 ID' })
+  @ApiProperty({ example: 1 })
   chatId: number;
 
-  @ApiProperty({ description: '발신자 ID' })
+  @ApiProperty({ example: 1 })
   senderId: number;
 
-  @ApiProperty({ description: '메시지 내용' })
+  @ApiProperty({ example: '이 상품 할인 되나요?' })
   message: string;
 
-  @ApiProperty({ description: '생성 일시' })
+  @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   createdAt: Date;
 }
 
 export class ChatWithMessagesResponseDto extends ChatResponseDto {
-  @ApiProperty({ description: '메시지 목록', type: [MessageResponseDto] })
+  @ApiProperty({ type: [MessageResponseDto] })
   messages: MessageResponseDto[];
 }
 
+export class SuccessResponseDto {
+  @ApiProperty({ example: true })
+  success: boolean;
+}
