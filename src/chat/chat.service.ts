@@ -48,6 +48,13 @@ export class ChatService {
     return `${prompt}\n\n응답 형식 예시:\n\`\`\`json\n${JSON.stringify(example, null, 2)}\n\`\`\``;
   }
 
+  private async getMessages(chatId: number): Promise<Message[]> {
+    return this.messageRepository.find({
+      where: { chatId },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
   async createChat(buyerId: number, itemId: number): Promise<void> {
     const item = await this.itemService.findById(itemId);
     if (!item) {
@@ -63,11 +70,9 @@ export class ChatService {
       where: { itemId, buyerId, sellerId },
     });
 
-    if (existingChat) {
-      return;
+    if (!existingChat) {
+      await this.chatRepository.save({ itemId, buyerId, sellerId });
     }
-
-    await this.chatRepository.save({ itemId, buyerId, sellerId });
   }
 
   async sendMessage(
@@ -84,11 +89,7 @@ export class ChatService {
   }
 
   private async handleBuyerMessage(chat: Chat): Promise<void> {
-    const messages = await this.messageRepository.find({
-      where: { chatId: chat.id },
-      order: { createdAt: 'ASC' },
-    });
-
+    const messages = await this.getMessages(chat.id);
     const systemPrompt = await this.createSystemPrompt(chat);
     const messageHistory = messages.map((msg) =>
       msg.senderId === chat.buyerId
@@ -123,28 +124,18 @@ export class ChatService {
       order: { createdAt: 'DESC' },
     });
 
-    if (!productAnalysis) {
-      return this.systemPrompt;
-    }
-    return `${this.systemPrompt}\n\n${this.formatProductAnalysis(productAnalysis)}\n`;
-  }
+    if (!productAnalysis) return this.systemPrompt;
 
-  private formatProductAnalysis(analysis: ProductAnalysis): string {
-    return `## 상품 정보
-- 상품명: ${analysis.name}
-- 분석: ${analysis.analysis}
-- 문제점: ${analysis.issues.join(', ')}
-- 장점: ${analysis.positives.join(', ')}
-- 사용감: ${analysis.usageLevel}
-- 가격: ${analysis.recommendedPrice ? `${analysis.recommendedPrice}원` : '없음'}
-${analysis.priceReason ? `- 가격 근거: ${analysis.priceReason}` : ''}`;
-  }
+    const analysisText = `## 상품 정보
+- 상품명: ${productAnalysis.name}
+- 분석: ${productAnalysis.analysis}
+- 문제점: ${productAnalysis.issues.join(', ')}
+- 장점: ${productAnalysis.positives.join(', ')}
+- 사용감: ${productAnalysis.usageLevel}
+- 가격: ${productAnalysis.recommendedPrice ? `${productAnalysis.recommendedPrice}원` : '없음'}
+${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}` : ''}`;
 
-  private formatChatHistory(messages: Message[], buyerId: number): string {
-    const chatHistory = messages
-      .map(msg => `[${msg.senderId === buyerId ? '구매자' : '판매자'}] ${msg.message}`)
-      .join('\n');
-    return `## 이전 채팅 내용\n${chatHistory}`;
+    return `${this.systemPrompt}\n\n${analysisText}\n`;
   }
 
   private async notifySeller(chat: Chat): Promise<void> {
@@ -163,13 +154,11 @@ ${analysis.priceReason ? `- 가격 근거: ${analysis.priceReason}` : ''}`;
   }
 
   private async generateEmailContent(chat: Chat): Promise<EmailContentDto> {
-    const messages = await this.messageRepository.find({
-      where: { chatId: chat.id },
-      order: { createdAt: 'ASC' },
-    });
-
-    const chatHistory = this.formatChatHistory(messages, chat.buyerId);
-    const contextPrompt = `채팅 ID: ${chat.id}\n아이템 ID: ${chat.itemId}\n\n${chatHistory}`;
+    const messages = await this.getMessages(chat.id);
+    const chatHistory = messages
+      .map(msg => `[${msg.senderId === chat.buyerId ? '구매자' : '판매자'}] ${msg.message}`)
+      .join('\n');
+    const contextPrompt = `채팅 ID: ${chat.id}\n아이템 ID: ${chat.itemId}\n\n## 이전 채팅 내용\n${chatHistory}`;
 
     const response = await this.flockAIService.invoke([
       new SystemMessage(this.emailPrompt),
@@ -184,10 +173,6 @@ ${analysis.priceReason ? `- 가격 근거: ${analysis.priceReason}` : ''}`;
     return emailContent;
   }
 
-  async getChat(chatId: number, userId: number): Promise<Chat> {
-    return this.findChatWithAuth(chatId, userId);
-  }
-
   private async findChatWithAuth(chatId: number, userId: number): Promise<Chat> {
     const chat = await this.chatRepository.findOne({ where: { id: chatId } });
     if (!chat) {
@@ -199,12 +184,13 @@ ${analysis.priceReason ? `- 가격 근거: ${analysis.priceReason}` : ''}`;
     return chat;
   }
 
+  async getChat(chatId: number, userId: number): Promise<Chat> {
+    return this.findChatWithAuth(chatId, userId);
+  }
+
   async getChatMessages(chatId: number, userId: number): Promise<Message[]> {
     await this.findChatWithAuth(chatId, userId);
-    return this.messageRepository.find({
-      where: { chatId },
-      order: { createdAt: 'ASC' },
-    });
+    return this.getMessages(chatId);
   }
 
   async getUserChats(userId: number): Promise<Chat[]> {
@@ -216,10 +202,7 @@ ${analysis.priceReason ? `- 가격 근거: ${analysis.priceReason}` : ''}`;
 
   async getChatWithMessages(chatId: number, userId: number) {
     const chat = await this.findChatWithAuth(chatId, userId);
-    const messages = await this.messageRepository.find({
-      where: { chatId },
-      order: { createdAt: 'ASC' },
-    });
+    const messages = await this.getMessages(chatId);
     return { ...chat, messages };
   }
 }
