@@ -2,7 +2,7 @@ import { Controller, Get, Param, ParseIntPipe, NotFoundException, Inject, forwar
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { ItemService } from './item.service';
 import { ProductAnalysisService } from '../product-analysis/product-analysis.service';
-import { ItemResponseDto, ItemWithImagesResponseDto, ItemDetailResponseDto } from './dto/item.dto';
+import { ItemWithImagesResponseDto, ItemDetailResponseDto } from './dto/item.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ItemImage } from './entities/item-image.entity';

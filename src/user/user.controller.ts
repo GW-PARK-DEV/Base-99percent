@@ -39,8 +39,7 @@ export class UserController {
     @Body() dto: UpdateEmailDto,
     @Request() req: any,
   ): Promise<UserResponseDto> {
-    const user = await this.userService.findOrCreate(req.user.fid);
-    const updatedUser = await this.userService.updateEmail(user.id, dto.email);
+    const updatedUser = await this.userService.updateEmailByFid(req.user.fid, dto.email);
 
     return {
       id: updatedUser.id,

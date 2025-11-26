@@ -41,12 +41,16 @@ export class ItemService {
     });
   }
 
+  async getImageUrls(itemId: number): Promise<string[]> {
+    const images = await this.itemImageRepository.find({
+      where: { itemId },
+      order: { createdAt: 'ASC' },
+    });
+    return images.map(img => img.imageUrl);
+  }
+
   async findByIdWithImages(id: number): Promise<Item | null> {
-    const item = await this.itemRepository.findOne({ where: { id } });
-    if (!item) {
-      return null;
-    }
-    return item;
+    return this.itemRepository.findOne({ where: { id } });
   }
 
   async markAsSold(itemId: number): Promise<Item> {

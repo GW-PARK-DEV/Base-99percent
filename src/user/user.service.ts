@@ -28,5 +28,10 @@ export class UserService {
     user.email = email;
     return this.userRepository.save(user);
   }
-}
 
+  async updateEmailByFid(fid: number, email: string): Promise<User> {
+    const user = await this.findOrCreate(fid);
+    user.email = email;
+    return this.userRepository.save(user);
+  }
+}
