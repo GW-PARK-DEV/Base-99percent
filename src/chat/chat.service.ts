@@ -242,15 +242,11 @@ ${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}
     }
 
     try {
-      await this.emailService.sendSellerNotification(
-        seller.email,
-        chat.itemId,
-        buyerMessage.message || '',
-        chat.id,
-      );
+      const subject = `[99percent] 구매자 문의가 도착했습니다 - 아이템 #${chat.itemId}`;
+      const text = `구매자님으로부터 다음 문의가 도착했습니다:\n\n"${buyerMessage.message || ''}"\n\n이 질문에 대한 답변을 부탁드립니다.\n채팅 ID: ${chat.id}\n아이템 ID: ${chat.itemId}`;
+      await this.emailService.sendEmail(seller.email, subject, text);
     } catch (error) {
       console.error('판매자에게 이메일 전송 실패:', error);
-      // 이메일 전송 실패해도 채팅은 정상적으로 진행
     }
   }
 

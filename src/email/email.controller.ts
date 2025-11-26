@@ -10,7 +10,7 @@ export class EmailController {
 
   @Post('send')
   @ApiOperation({ summary: '이메일 전송' })
-  @ApiResponse({ status: 200, description: '이메일 전송 성공' })
+  @ApiResponse({ status: 201, description: '이메일 전송 성공' })
   @ApiResponse({ status: 400, description: '잘못된 요청' })
   async sendEmail(@Body() dto: SendEmailDto): Promise<{ success: boolean }> {
     await this.emailService.sendEmailToUser(dto.userId, dto.subject, dto.content);
