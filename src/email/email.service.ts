@@ -10,19 +10,21 @@ export class EmailService {
     // Gmail SMTP 설정
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
-      host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
-      port: this.configService.get<number>('SMTP_PORT', 587),
-      secure: this.configService.get<boolean>('SMTP_SECURE', false),
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: this.configService.get<string>('GMAIL_USER'),
-        pass: this.configService.get<string>('GMAIL_APP_PASSWORD'), // Gmail 앱 비밀번호 필요
+        pass: this.configService.get<string>('GMAIL_APP_PASSWORD'),
       },
     });
   }
 
   async sendEmail(to: string, subject: string, text: string, html?: string): Promise<void> {
-    const gmailUser = this.configService.get<string>('GMAIL_USER') || '';
-    const from = this.configService.get<string>('GMAIL_FROM') || gmailUser;
+    const from =
+      this.configService.get<string>('GMAIL_FROM') ||
+      this.configService.get<string>('GMAIL_USER') ||
+      '';
 
     await this.transporter.sendMail({
       from,
