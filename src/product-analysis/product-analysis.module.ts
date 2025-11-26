@@ -13,6 +13,8 @@ import { GoogleSearchModule } from '../google-search/google-search.module';
 import { BunjangSearchModule } from '../bunjang-search/bunjang-search.module';
 import { QueueModule } from '../queue/queue.module';
 import { S3Module } from '../s3/s3.module';
+import { ItemModule } from '../item/item.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { S3Module } from '../s3/s3.module';
     BunjangSearchModule,
     QueueModule,
     S3Module,
+    ItemModule,
+    UserModule,
   ],
   controllers: [ProductAnalysisController],
   providers: [ProductAnalysisService, ProductPriceService, ProductAnalysisProcessor],

@@ -26,6 +26,7 @@ function setupSwagger(app: any) {
     .setVersion('1.0')
     .addTag('product-analysis', '물건 상태 분석')
     .addTag('bunjang-search', '번개장터 검색')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

@@ -1,18 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNumber } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsOptional, IsString } from 'class-validator';
 
 export class ProductAnalysisDto {
-  @ApiProperty({
-    type: 'number',
-    description: '아이템 ID',
-    example: 1,
-    required: true,
-  })
-  @IsNumber()
-  @Type(() => Number)
-  itemId: number;
-
   @ApiProperty({
     type: 'string',
     description: '판매자가 제공한 물건 설명',
