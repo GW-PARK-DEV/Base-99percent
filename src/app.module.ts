@@ -17,6 +17,7 @@ import { QuickAuthModule } from './quick-auth/quick-auth.module';
 import { UserModule } from './user/user.module';
 import { ItemModule } from './item/item.module';
 import { TradeModule } from './trade/trade.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TradeModule } from './trade/trade.module';
     UserModule,
     ItemModule,
     TradeModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

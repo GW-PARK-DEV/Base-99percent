@@ -1,11 +1,14 @@
-import { Entity, PrimaryColumn, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryColumn, CreateDateColumn, Column } from 'typeorm';
 
 @Entity('users')
 export class User {
   @PrimaryColumn({ type: 'bigint' })
   id: number;
 
-  @CreateDateColumn()
+  @Column({ type: 'text', nullable: true })
+  email: string | null;
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
 
