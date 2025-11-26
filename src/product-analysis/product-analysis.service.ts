@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { readFileSync } from 'fs';
@@ -6,7 +6,6 @@ import { join } from 'path';
 import { FlockAIService } from '../ai/flock-ai.service';
 import { JsonService } from '../json/json.service';
 import { Base64Service } from '../base64/base64.service';
-import { UserService } from '../user/user.service';
 import { ProductAnalysis } from './entities/product-analysis.entity';
 import { ProductAnalysisDto, ProductAnalysisResponseDto, ProductAnalysisWithPriceResponseDto } from './dto/product-analysis.dto';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
@@ -21,7 +20,6 @@ export class ProductAnalysisService {
     private readonly aiService: FlockAIService,
     private readonly jsonService: JsonService,
     private readonly base64Service: Base64Service,
-    private readonly userService: UserService,
   ) {
     const promptsDir = join(process.cwd(), 'public', 'prompts', 'product-analysis');
     const prompt = readFileSync(join(promptsDir, 'product-analysis.md'), 'utf-8');
