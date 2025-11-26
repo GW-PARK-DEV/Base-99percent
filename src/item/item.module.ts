@@ -5,11 +5,15 @@ import { ItemImage } from './entities/item-image.entity';
 import { ItemService } from './item.service';
 import { ItemController } from './item.controller';
 import { ProductAnalysisModule } from '../product-analysis/product-analysis.module';
+import { S3Module } from '../s3/s3.module';
+import { Base64Module } from '../base64/base64.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Item, ItemImage]),
     forwardRef(() => ProductAnalysisModule),
+    S3Module,
+    Base64Module,
   ],
   providers: [ItemService],
   controllers: [ItemController],

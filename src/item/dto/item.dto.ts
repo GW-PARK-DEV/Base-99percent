@@ -11,16 +11,12 @@ export class ItemResponseDto {
   @ApiProperty({ description: '아이템 상태', enum: ItemStatus })
   status: ItemStatus;
 
-  @ApiProperty({ description: '생성 일시' })
+  @ApiProperty({ description: '생성 시간' })
   createdAt: Date;
-}
 
-export class ItemWithImagesResponseDto extends ItemResponseDto {
-  @ApiProperty({ description: '이미지 URL 목록', type: [String] })
+  @ApiProperty({ description: '이미지 목록', type: [String] })
   images: string[];
-}
 
-export class ItemDetailResponseDto extends ItemWithImagesResponseDto {
   @ApiProperty({ description: '상품 분석 정보', nullable: true })
   productAnalysis?: {
     name: string;
@@ -32,4 +28,3 @@ export class ItemDetailResponseDto extends ItemWithImagesResponseDto {
     priceReason: string;
   };
 }
-

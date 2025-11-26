@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Item, ItemStatus } from './entities/item.entity';
 import { ItemImage } from './entities/item-image.entity';
+import { S3Service } from '../s3/s3.service';
+import { Base64Service } from '../base64/base64.service';
 
 @Injectable()
 export class ItemService {
@@ -11,6 +13,8 @@ export class ItemService {
     private readonly itemRepository: Repository<Item>,
     @InjectRepository(ItemImage)
     private readonly itemImageRepository: Repository<ItemImage>,
+    private readonly s3Service: S3Service,
+    private readonly base64Service: Base64Service,
   ) {}
 
   async create(userId: number): Promise<Item> {
@@ -41,16 +45,19 @@ export class ItemService {
     });
   }
 
-  async getImageUrls(itemId: number): Promise<string[]> {
+  async getImageBase64s(itemId: number): Promise<string[]> {
     const images = await this.itemImageRepository.find({
       where: { itemId },
       order: { createdAt: 'ASC' },
     });
-    return images.map(img => img.imageUrl);
-  }
 
-  async findByIdWithImages(id: number): Promise<Item | null> {
-    return this.itemRepository.findOne({ where: { id } });
+    return Promise.all(
+      images.map(async (img) => {
+        const [, bucket, ...keyParts] = img.imageUrl.split('/');
+        const buffer = await this.s3Service.downloadFile(bucket, keyParts.join('/'));
+        return this.base64Service.encodeFromBuffer(buffer);
+      })
+    );
   }
 
   async markAsSold(itemId: number): Promise<Item> {
