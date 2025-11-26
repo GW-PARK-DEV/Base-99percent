@@ -18,12 +18,21 @@ export class PointController {
   @ApiBearerAuth()
   @ApiOperation({ summary: '사용자 포인트 조회' })
   @ApiResponse({ status: 200, type: PointsResponseDto })
-  @ApiResponse({ status: 401, description: '인증 토큰이 없거나 유효하지 않음' })
+  @ApiResponse({ status: 401 })
   async getPoints(@Request() req: any): Promise<PointsResponseDto> {
     const user = await this.userService.findOrCreate(req.user.fid);
-    const totalPoints = await this.pointService.getUserTotalPoints(user.id);
+    return { totalPoints: await this.pointService.getUserTotalPoints(user.id) };
+  }
 
-    return { totalPoints };
+  @Get('history')
+  @UseGuards(QuickAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '포인트 내역 조회' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 401 })
+  async getPointHistory(@Request() req: any) {
+    const user = await this.userService.findOrCreate(req.user.fid);
+    return this.pointService.getUserPointHistory(user.id);
   }
 }
 

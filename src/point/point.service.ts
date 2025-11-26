@@ -23,4 +23,11 @@ export class PointService {
     });
     return result?.totalPoints || 0;
   }
+
+  async getUserPointHistory(userId: number) {
+    return this.userPointRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+  }
 }
