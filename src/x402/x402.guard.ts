@@ -42,14 +42,14 @@ export class X402Guard implements CanActivate {
       return false;
     }
 
-    const result = await this.x402Service.verifyPayment(
+    const isValid = await this.x402Service.verifyPayment(
       paymentHeader,
       request.url,
       request.method,
       paymentConfig,
     );
 
-    if (!result.isValid) {
+    if (!isValid) {
       response.status(HttpStatus.PAYMENT_REQUIRED).json(instructions);
       return false;
     }

@@ -22,6 +22,10 @@ export class ItemService {
     return this.itemRepository.find({ where: { userId } });
   }
 
+  async findById(id: number): Promise<Item | null> {
+    return this.itemRepository.findOne({ where: { id } });
+  }
+
   async createItemWithImages(userId: number, imageUrls: string[]): Promise<Item> {
     const item = await this.itemRepository.save({ userId });
     await this.itemImageRepository.save(

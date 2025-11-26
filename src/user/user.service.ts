@@ -18,5 +18,11 @@ export class UserService {
   findById(fid: number): Promise<User | null> {
     return this.userRepository.findOne({ where: { id: fid } });
   }
+
+  async updateWalletAddress(userId: number, walletAddress: string): Promise<User | null> {
+    await this.userRepository.update({ id: userId }, { walletAddress });
+    return this.userRepository.findOne({ where: { id: userId } });
+  }
+
 }
 
