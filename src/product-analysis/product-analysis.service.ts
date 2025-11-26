@@ -6,6 +6,7 @@ import { join } from 'path';
 import { FlockAIService } from '../ai/flock-ai.service';
 import { JsonService } from '../json/json.service';
 import { Base64Service } from '../base64/base64.service';
+import { UserService } from '../user/user.service';
 import { ProductAnalysis } from './entities/product-analysis.entity';
 import { ProductAnalysisDto, ProductAnalysisResponseDto, ProductAnalysisWithPriceResponseDto } from './dto/product-analysis.dto';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
@@ -20,6 +21,7 @@ export class ProductAnalysisService {
     private readonly aiService: FlockAIService,
     private readonly jsonService: JsonService,
     private readonly base64Service: Base64Service,
+    private readonly userService: UserService,
   ) {
     const promptsDir = join(process.cwd(), 'public', 'prompts', 'product-analysis');
     const prompt = readFileSync(join(promptsDir, 'product-analysis.md'), 'utf-8');
@@ -56,17 +58,7 @@ export class ProductAnalysisService {
     return result;
   }
 
-  /** itemId로 product analysis 조회 */
-  async findByItemId(itemId: number): Promise<ProductAnalysisWithPriceResponseDto | null> {
-    const analysis = await this.productAnalysisRepository.findOne({
-      where: { itemId },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (!analysis) {
-      return null;
-    }
-
+  private toResponseDto(analysis: ProductAnalysis): ProductAnalysisWithPriceResponseDto {
     return {
       name: analysis.name,
       analysis: analysis.analysis,
@@ -78,24 +70,26 @@ export class ProductAnalysisService {
     };
   }
 
-  /** 사용자의 모든 product analysis 조회 */
+  /** 아이템 ID로 상품 분석 조회 */
+  async findByItemId(itemId: number): Promise<ProductAnalysisWithPriceResponseDto | null> {
+    const analysis = await this.productAnalysisRepository.findOne({
+      where: { itemId },
+      order: { createdAt: 'DESC' },
+    });
+
+    return analysis ? this.toResponseDto(analysis) : null;
+  }
+
+  /** 사용자 ID로 사용자의 모든 상품 분석 조회 */
   async findByUserId(userId: number): Promise<ProductAnalysisWithPriceResponseDto[]> {
     const analyses = await this.productAnalysisRepository
       .createQueryBuilder('pa')
-      .innerJoin('items', 'item', 'item.id = pa.item_id')
-      .where('item.user_id = :userId', { userId })
-      .orderBy('pa.created_at', 'DESC')
+      .innerJoin('pa.item', 'item')
+      .where('item.userId = :userId', { userId })
+      .orderBy('pa.createdAt', 'DESC')
       .getMany();
 
-    return analyses.map(analysis => ({
-      name: analysis.name,
-      analysis: analysis.analysis,
-      issues: analysis.issues,
-      positives: analysis.positives,
-      usageLevel: analysis.usageLevel,
-      recommendedPrice: analysis.recommendedPrice || 0,
-      priceReason: analysis.priceReason || '',
-    }));
+    return analyses.map(analysis => this.toResponseDto(analysis));
   }
 }
 

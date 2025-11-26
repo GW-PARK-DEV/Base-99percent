@@ -127,20 +127,8 @@ export class ProductAnalysisController {
 
   @Get('item/:itemId')
   @ApiOperation({ summary: '아이템 ID로 상품 분석 조회' })
-  @ApiParam({
-    name: 'itemId',
-    description: '아이템 ID',
-    type: Number,
-  })
-  @ApiResponse({
-    status: 200,
-    description: '상품 분석 조회 성공',
-    type: ProductAnalysisWithPriceResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: '상품 분석을 찾을 수 없음',
-  })
+  @ApiResponse({ status: 200, type: ProductAnalysisWithPriceResponseDto })
+  @ApiResponse({ status: 404, description: '상품 분석을 찾을 수 없음' })
   async getByItemId(
     @Param('itemId', ParseIntPipe) itemId: number,
   ): Promise<ProductAnalysisWithPriceResponseDto> {
@@ -157,19 +145,11 @@ export class ProductAnalysisController {
   @UseGuards(QuickAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '사용자의 모든 상품 분석 조회' })
-  @ApiResponse({
-    status: 200,
-    description: '상품 분석 목록 조회 성공',
-    type: [ProductAnalysisWithPriceResponseDto],
-  })
-  @ApiResponse({
-    status: 401,
-    description: '인증 토큰이 없거나 유효하지 않음',
-  })
+  @ApiResponse({ status: 200, type: [ProductAnalysisWithPriceResponseDto] })
+  @ApiResponse({ status: 401, description: '인증 토큰이 없거나 유효하지 않음' })
   async getByUserId(
     @Request() req: any,
   ): Promise<ProductAnalysisWithPriceResponseDto[]> {
-    const user = await this.userService.findOrCreate(req.user.fid);
-    return this.productAnalysisService.findByUserId(user.id);
+    return this.productAnalysisService.findByUserId(req.user.fid);
   }
 }
