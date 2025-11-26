@@ -17,16 +17,7 @@ import { FlockAIService } from '../ai/flock-ai.service';
 import { EmailService } from '../email/email.service';
 import { JsonService } from '../json/json.service';
 import { SystemMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
-
-interface ChatAIResponse {
-  response: string;
-  needsSellerEmail: boolean;
-}
-
-interface EmailContent {
-  subject: string;
-  text: string;
-}
+import { ChatAIResponseDto, EmailContentDto } from './dto/chat.dto';
 
 @Injectable()
 export class ChatService {
@@ -57,19 +48,16 @@ export class ChatService {
   }
 
   async createChat(buyerId: number, itemId: number): Promise<Chat> {
-    // 아이템 조회
     const item = await this.itemService.findById(itemId);
     if (!item) {
       throw new NotFoundException('아이템을 찾을 수 없습니다.');
     }
 
-    // 판매자 정보 확인
     const sellerId = item.userId;
     if (sellerId === buyerId) {
       throw new ForbiddenException('자신의 아이템에는 채팅을 시작할 수 없습니다.');
     }
 
-    // 기존 채팅 확인
     const existingChat = await this.chatRepository.findOne({
       where: { itemId, buyerId, sellerId },
     });
@@ -78,14 +66,7 @@ export class ChatService {
       return existingChat;
     }
 
-    // 새 채팅 생성
-    const chat = this.chatRepository.create({
-      itemId,
-      buyerId,
-      sellerId,
-    });
-
-    return this.chatRepository.save(chat);
+    return this.chatRepository.save({ itemId, buyerId, sellerId });
   }
 
   async sendMessage(
@@ -93,31 +74,21 @@ export class ChatService {
     senderId: number,
     message: string,
   ): Promise<{ message: Message; aiResponse?: Message; needsSellerResponse: boolean }> {
-    // 채팅 조회
     const chat = await this.chatRepository.findOne({ where: { id: chatId } });
     if (!chat) {
       throw new NotFoundException('채팅을 찾을 수 없습니다.');
     }
 
-    // 권한 확인 (구매자 또는 판매자만 메시지 전송 가능)
     if (chat.buyerId !== senderId && chat.sellerId !== senderId) {
       throw new ForbiddenException('이 채팅에 메시지를 보낼 권한이 없습니다.');
     }
 
-    // 구매자 메시지 저장
-    const buyerMessage = this.messageRepository.create({
-      chatId,
-      senderId,
-      message,
-    });
-    const savedMessage = await this.messageRepository.save(buyerMessage);
+    const savedMessage = await this.messageRepository.save({ chatId, senderId, message });
 
-    // 구매자가 보낸 메시지인 경우에만 AI 응답 생성
     if (chat.buyerId === senderId) {
       return this.handleBuyerMessage(chat, savedMessage);
     }
 
-    // 판매자가 보낸 메시지는 그대로 반환
     return { message: savedMessage, needsSellerResponse: false };
   }
 
@@ -125,96 +96,68 @@ export class ChatService {
     chat: Chat,
     buyerMessage: Message,
   ): Promise<{ message: Message; aiResponse?: Message; needsSellerResponse: boolean }> {
-    // 이전 메시지 가져오기
     const previousMessages = await this.messageRepository.find({
       where: { chatId: chat.id },
       order: { createdAt: 'ASC' },
     });
 
-    // 초기 메시지인 경우 컨텍스트 추가 (이전 메시지가 없거나 첫 구매자 메시지인 경우)
-    const isInitialMessage = previousMessages.length === 1; // 현재 메시지만 있는 경우
+    const systemPrompt = await this.createSystemPrompt(chat);
 
-    // AI 시스템 프롬프트 생성 (컨텍스트 포함)
-    const systemPrompt = await this.createSystemPrompt(chat, isInitialMessage);
+    const messageHistory = previousMessages.map((msg) =>
+      msg.senderId === chat.buyerId
+        ? new HumanMessage(msg.message || '')
+        : new AIMessage(msg.message || '')
+    );
 
-    // 메시지 히스토리 구성
-    const messageHistory = previousMessages.map((msg) => {
-      if (msg.senderId === chat.buyerId) {
-        return new HumanMessage(msg.message || '');
-      } else {
-        return new AIMessage(msg.message || '');
-      }
-    });
-
-    // 현재 구매자 메시지 추가
-    messageHistory.push(new HumanMessage(buyerMessage.message || ''));
-
-    // AI 응답 생성
     const aiResponseText = await this.flockAIService.invoke([
       new SystemMessage(systemPrompt),
       ...messageHistory,
     ]);
 
-    // JSON 파싱
-    const aiResponseJson = this.jsonService.parseFromCodeBlock<ChatAIResponse>(aiResponseText);
-    
+    const aiResponseJson = this.jsonService.parseFromCodeBlock<ChatAIResponseDto>(aiResponseText);
     if (!aiResponseJson) {
       throw new BadRequestException('AI 응답을 파싱할 수 없습니다.');
     }
 
-    const needsSellerResponse = aiResponseJson.needsSellerEmail || false;
-    const responseMessage = aiResponseJson.response || aiResponseText;
-
-    // AI 응답 메시지 저장
-    const aiResponse = this.messageRepository.create({
+    const savedAiResponse = await this.messageRepository.save({
       chatId: chat.id,
-      senderId: chat.sellerId, // 판매자 대신 AI가 응답
-      message: responseMessage,
+      senderId: chat.sellerId,
+      message: aiResponseJson.response || aiResponseText,
     });
-    const savedAiResponse = await this.messageRepository.save(aiResponse);
 
-    // 판매자에게 이메일 전송이 필요한 경우
-    if (needsSellerResponse) {
-      await this.notifySeller(chat, buyerMessage);
+    if (aiResponseJson.needsSellerEmail) {
+      await this.notifySeller(chat);
     }
 
     return {
       message: buyerMessage,
       aiResponse: savedAiResponse,
-      needsSellerResponse,
+      needsSellerResponse: aiResponseJson.needsSellerEmail,
     };
   }
 
-  private async createSystemPrompt(chat: Chat, includeContext: boolean): Promise<string> {
-    let contextInfo = '';
-
-    if (includeContext) {
-      // Product Analysis 정보 가져오기
-      const productAnalysis = await this.productAnalysisRepository.findOne({
+  private async createSystemPrompt(chat: Chat): Promise<string> {
+    const [productAnalysis, otherChats] = await Promise.all([
+      this.productAnalysisRepository.findOne({
         where: { itemId: chat.itemId },
         order: { createdAt: 'DESC' },
-      });
+      }),
+      this.chatRepository.find({ where: { itemId: chat.itemId } }),
+    ]);
 
-      // 이전 채팅 내용 가져오기 (같은 아이템의 다른 채팅)
-      const otherChats = await this.chatRepository.find({
-        where: { itemId: chat.itemId },
-        relations: [],
-      });
+    const otherChatIds = otherChats.filter(c => c.id !== chat.id).map(c => c.id);
+    const previousChatMessages = otherChatIds.length > 0
+      ? await this.messageRepository.find({
+          where: { chatId: In(otherChatIds) },
+          order: { createdAt: 'DESC' },
+          take: 10,
+        })
+      : [];
 
-      const otherChatIds = otherChats.filter(c => c.id !== chat.id).map(c => c.id);
-      const previousChatMessages = otherChatIds.length > 0
-        ? await this.messageRepository.find({
-            where: { chatId: In(otherChatIds) },
-            order: { createdAt: 'DESC' },
-            take: 10, // 최근 10개만
-          })
-        : [];
+    const contextParts: string[] = [];
 
-      // 컨텍스트 정보 구성
-      const contextParts: string[] = [];
-
-      if (productAnalysis) {
-        contextParts.push(`## 상품 분석 정보
+    if (productAnalysis) {
+      contextParts.push(`## 상품 분석 정보
 - 상품명: ${productAnalysis.name}
 - 분석: ${productAnalysis.analysis}
 - 문제점: ${productAnalysis.issues.join(', ')}
@@ -222,44 +165,37 @@ export class ChatService {
 - 사용감: ${productAnalysis.usageLevel}
 - 권장 가격: ${productAnalysis.recommendedPrice ? `${productAnalysis.recommendedPrice}원` : '없음'}
 ${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}` : ''}`);
-      }
-
-      if (previousChatMessages.length > 0) {
-        // 역순으로 정렬 (오래된 것부터)
-        const sortedMessages = [...previousChatMessages].reverse();
-        const chatHistory = sortedMessages
-          .map(msg => `[${msg.senderId === chat.buyerId ? '구매자' : '판매자'}] ${msg.message}`)
-          .join('\n');
-        contextParts.push(`## 이전 채팅 내용\n${chatHistory}`);
-      }
-
-      if (contextParts.length > 0) {
-        contextInfo = `\n\n## 컨텍스트 정보\n${contextParts.join('\n\n')}\n`;
-      }
     }
 
-    return `${this.systemPrompt}${contextInfo}`;
+    if (previousChatMessages.length > 0) {
+      const chatHistory = [...previousChatMessages]
+        .reverse()
+        .map(msg => `[${msg.senderId === chat.buyerId ? '구매자' : '판매자'}] ${msg.message}`)
+        .join('\n');
+      contextParts.push(`## 이전 채팅 내용\n${chatHistory}`);
+    }
+
+    return contextParts.length > 0
+      ? `${this.systemPrompt}\n\n## 컨텍스트 정보\n${contextParts.join('\n\n')}\n`
+      : this.systemPrompt;
   }
 
-  private async notifySeller(chat: Chat, buyerMessage: Message): Promise<void> {
-    // 판매자 정보 가져오기
+  private async notifySeller(chat: Chat): Promise<void> {
     const seller = await this.userService.findById(chat.sellerId);
-    
-    if (!seller || !seller.email) {
-      // 이메일이 설정되지 않은 경우 로그만 남기고 계속 진행
+    if (!seller?.email) {
       console.warn(`판매자 ${chat.sellerId}의 이메일이 설정되지 않았습니다.`);
       return;
     }
 
     try {
-      const emailContent = await this.generateEmailContent(chat, buyerMessage);
+      const emailContent = await this.generateEmailContent(chat);
       await this.emailService.sendEmail(seller.email, emailContent.subject, emailContent.text);
     } catch (error) {
       console.error('판매자에게 이메일 전송 실패:', error);
     }
   }
 
-  private async generateEmailContent(chat: Chat, buyerMessage: Message): Promise<EmailContent> {
+  private async generateEmailContent(chat: Chat): Promise<EmailContentDto> {
     const messages = await this.messageRepository.find({
       where: { chatId: chat.id },
       order: { createdAt: 'ASC' },
@@ -276,7 +212,7 @@ ${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}
       new HumanMessage(contextPrompt),
     ]);
 
-    const emailContent = this.jsonService.parseFromCodeBlock<EmailContent>(response);
+    const emailContent = this.jsonService.parseFromCodeBlock<EmailContentDto>(response);
     
     if (!emailContent || !emailContent.subject || !emailContent.text) {
       throw new BadRequestException('이메일 내용 생성에 실패했습니다.');
@@ -291,7 +227,6 @@ ${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}
       throw new NotFoundException('채팅을 찾을 수 없습니다.');
     }
 
-    // 권한 확인
     if (chat.buyerId !== userId && chat.sellerId !== userId) {
       throw new ForbiddenException('이 채팅에 접근할 권한이 없습니다.');
     }
@@ -300,9 +235,7 @@ ${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}
   }
 
   async getChatMessages(chatId: number, userId: number): Promise<Message[]> {
-    // 채팅 권한 확인
     await this.getChat(chatId, userId);
-
     return this.messageRepository.find({
       where: { chatId },
       order: { createdAt: 'ASC' },

@@ -58,3 +58,19 @@ export class SuccessResponseDto {
   @ApiProperty({ example: true })
   success: boolean;
 }
+
+export class ChatAIResponseDto {
+  @ApiProperty({ example: '안녕하세요, 도와드리겠습니다.' })
+  response: string;
+
+  @ApiProperty({ example: false })
+  needsSellerEmail: boolean;
+}
+
+export class EmailContentDto {
+  @ApiProperty({ example: '구매자 문의가 도착했습니다' })
+  subject: string;
+
+  @ApiProperty({ example: '구매자님으로부터 문의가 도착했습니다...' })
+  text: string;
+}
