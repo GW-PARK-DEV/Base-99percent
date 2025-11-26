@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Item } from './entities/item.entity';
+import { Item, ItemStatus } from './entities/item.entity';
 import { ItemImage } from './entities/item-image.entity';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class ItemService {
   ) {}
 
   async create(userId: number): Promise<Item> {
-    const item = this.itemRepository.create({ userId });
+    const item = this.itemRepository.create({ userId, status: ItemStatus.ACTIVE });
     return this.itemRepository.save(item);
   }
 
@@ -27,12 +27,35 @@ export class ItemService {
   }
 
   async createItemWithImages(userId: number, imageUrls: string[]): Promise<Item> {
-    const item = await this.itemRepository.save({ userId });
+    const item = await this.itemRepository.save({ userId, status: ItemStatus.ACTIVE });
     await this.itemImageRepository.save(
       imageUrls.map(imageUrl => ({ itemId: item.id, imageUrl }))
     );
     return item;
   }
 
+  async findAllActive(): Promise<Item[]> {
+    return this.itemRepository.find({
+      where: { status: ItemStatus.ACTIVE },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findByIdWithImages(id: number): Promise<Item | null> {
+    const item = await this.itemRepository.findOne({ where: { id } });
+    if (!item) {
+      return null;
+    }
+    return item;
+  }
+
+  async markAsSold(itemId: number): Promise<Item> {
+    const item = await this.findById(itemId);
+    if (!item) {
+      throw new NotFoundException('아이템을 찾을 수 없습니다.');
+    }
+    item.status = ItemStatus.SOLD;
+    return this.itemRepository.save(item);
+  }
 }
 

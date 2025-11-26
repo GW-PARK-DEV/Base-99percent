@@ -89,6 +89,9 @@ export class TradeService {
       `아이템 #${dto.itemId} 판매`,
     );
 
+    // 아이템 상태를 sold로 변경
+    await this.itemService.markAsSold(dto.itemId);
+
     return savedTrade;
   }
 

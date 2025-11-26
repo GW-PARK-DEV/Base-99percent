@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { ProductAnalysisController } from './product-analysis.controller';
@@ -27,7 +27,7 @@ import { UserModule } from '../user/user.module';
     BunjangSearchModule,
     QueueModule,
     S3Module,
-    ItemModule,
+    forwardRef(() => ItemModule),
     UserModule,
   ],
   controllers: [ProductAnalysisController],
