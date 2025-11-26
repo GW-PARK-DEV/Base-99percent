@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { FlockAIService } from '../ai/flock-ai.service';
 import { JsonService } from '../json/json.service';
 import { Base64Service } from '../base64/base64.service';
-import { ProductAnalysisDto, ProductAnalysisResponseDto } from './dto/product-analysis.dto';
+import { ProductAnalysis } from './entities/product-analysis.entity';
+import { ProductAnalysisDto, ProductAnalysisResponseDto, ProductAnalysisWithPriceResponseDto } from './dto/product-analysis.dto';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 
 @Injectable()
@@ -12,6 +15,8 @@ export class ProductAnalysisService {
   private readonly systemPrompt: string;
 
   constructor(
+    @InjectRepository(ProductAnalysis)
+    private readonly productAnalysisRepository: Repository<ProductAnalysis>,
     private readonly aiService: FlockAIService,
     private readonly jsonService: JsonService,
     private readonly base64Service: Base64Service,
@@ -49,6 +54,48 @@ export class ProductAnalysisService {
     }
 
     return result;
+  }
+
+  /** itemId로 product analysis 조회 */
+  async findByItemId(itemId: number): Promise<ProductAnalysisWithPriceResponseDto | null> {
+    const analysis = await this.productAnalysisRepository.findOne({
+      where: { itemId },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!analysis) {
+      return null;
+    }
+
+    return {
+      name: analysis.name,
+      analysis: analysis.analysis,
+      issues: analysis.issues,
+      positives: analysis.positives,
+      usageLevel: analysis.usageLevel,
+      recommendedPrice: analysis.recommendedPrice || 0,
+      priceReason: analysis.priceReason || '',
+    };
+  }
+
+  /** 사용자의 모든 product analysis 조회 */
+  async findByUserId(userId: number): Promise<ProductAnalysisWithPriceResponseDto[]> {
+    const analyses = await this.productAnalysisRepository
+      .createQueryBuilder('pa')
+      .innerJoin('items', 'item', 'item.id = pa.item_id')
+      .where('item.user_id = :userId', { userId })
+      .orderBy('pa.created_at', 'DESC')
+      .getMany();
+
+    return analyses.map(analysis => ({
+      name: analysis.name,
+      analysis: analysis.analysis,
+      issues: analysis.issues,
+      positives: analysis.positives,
+      usageLevel: analysis.usageLevel,
+      recommendedPrice: analysis.recommendedPrice || 0,
+      priceReason: analysis.priceReason || '',
+    }));
   }
 }
 

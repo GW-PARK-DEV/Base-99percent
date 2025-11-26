@@ -1,10 +1,10 @@
-import { Controller, Post, UploadedFiles, UseInterceptors, BadRequestException, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, UploadedFiles, UseInterceptors, BadRequestException, Body, UseGuards, Request, Param, ParseIntPipe, NotFoundException } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ProductAnalysisService } from './product-analysis.service';
 import { QueueService } from '../queue/queue.service';
 import { S3Service } from '../s3/s3.service';
-import { ProductAnalysisDto, ProductAnalysisResponseDto } from './dto/product-analysis.dto';
+import { ProductAnalysisDto, ProductAnalysisResponseDto, ProductAnalysisWithPriceResponseDto } from './dto/product-analysis.dto';
 import { QuickAuthGuard } from '../quick-auth/quick-auth.guard';
 import { ItemService } from '../item/item.service';
 import { UserService } from '../user/user.service';
@@ -123,5 +123,53 @@ export class ProductAnalysisController {
     const item = await this.itemService.createItemWithImages(user.id, s3Paths);
     await this.queueService.getQueue('product-analysis').add('analyze', { s3Paths, dto, itemId: item.id });
     return true;
+  }
+
+  @Get('item/:itemId')
+  @ApiOperation({ summary: '아이템 ID로 상품 분석 조회' })
+  @ApiParam({
+    name: 'itemId',
+    description: '아이템 ID',
+    type: Number,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '상품 분석 조회 성공',
+    type: ProductAnalysisWithPriceResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: '상품 분석을 찾을 수 없음',
+  })
+  async getByItemId(
+    @Param('itemId', ParseIntPipe) itemId: number,
+  ): Promise<ProductAnalysisWithPriceResponseDto> {
+    const analysis = await this.productAnalysisService.findByItemId(itemId);
+    
+    if (!analysis) {
+      throw new NotFoundException('상품 분석을 찾을 수 없습니다.');
+    }
+
+    return analysis;
+  }
+
+  @Get()
+  @UseGuards(QuickAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '사용자의 모든 상품 분석 조회' })
+  @ApiResponse({
+    status: 200,
+    description: '상품 분석 목록 조회 성공',
+    type: [ProductAnalysisWithPriceResponseDto],
+  })
+  @ApiResponse({
+    status: 401,
+    description: '인증 토큰이 없거나 유효하지 않음',
+  })
+  async getByUserId(
+    @Request() req: any,
+  ): Promise<ProductAnalysisWithPriceResponseDto[]> {
+    const user = await this.userService.findOrCreate(req.user.fid);
+    return this.productAnalysisService.findByUserId(user.id);
   }
 }
