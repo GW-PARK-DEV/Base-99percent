@@ -1,44 +1,32 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsPositive, Min } from 'class-validator';
+import { IsInt, IsPositive } from 'class-validator';
 
 export class CreateTradeDto {
-  @ApiProperty({
-    description: '거래할 아이템 ID',
-    example: 1,
-  })
+  @ApiProperty({ example: 1 })
   @IsInt()
   @IsPositive()
   itemId: number;
-
-  @ApiProperty({
-    description: '거래 가격',
-    example: 100000,
-  })
-  @IsInt()
-  @Min(1)
-  price: number;
 }
 
 export class TradeResponseDto {
-  @ApiProperty({ description: '거래 ID' })
+  @ApiProperty()
   id: number;
 
-  @ApiProperty({ description: '아이템 ID' })
+  @ApiProperty()
   itemId: number;
 
-  @ApiProperty({ description: '구매자 ID' })
+  @ApiProperty()
   buyerId: number;
 
-  @ApiProperty({ description: '판매자 ID' })
+  @ApiProperty()
   sellerId: number;
 
-  @ApiProperty({ description: '거래 가격' })
+  @ApiProperty()
   price: number;
 
-  @ApiProperty({ description: '생성 일시' })
+  @ApiProperty()
   createdAt: Date;
 
-  @ApiProperty({ description: '수정 일시' })
+  @ApiProperty()
   updatedAt: Date;
 }
-
