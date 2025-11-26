@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Put,
   Body,
   UseGuards,
@@ -16,6 +17,21 @@ import { UpdateEmailDto, UserResponseDto } from './dto/user.dto';
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Get('me')
+  @UseGuards(QuickAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 정보 조회' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  @ApiResponse({ status: 401 })
+  async getMe(@Request() req: any): Promise<UserResponseDto> {
+    const user = await this.userService.findOrCreate(req.user.fid);
+    return {
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+    };
+  }
 
   @Put('email')
   @UseGuards(QuickAuthGuard)
