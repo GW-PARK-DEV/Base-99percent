@@ -3,31 +3,37 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Enable corepack for pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install all dependencies
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN pnpm build
 
 # Production stage
 FROM node:20-alpine AS production
 
 WORKDIR /app
 
+# Enable corepack for pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 # Install FFmpeg
 RUN apk add --no-cache ffmpeg
 
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+RUN pnpm install --prod --frozen-lockfile && pnpm store prune
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
