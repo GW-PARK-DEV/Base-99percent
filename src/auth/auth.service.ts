@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { QuickAuthService } from '../quick-auth/quick-auth.service';
 import { UserService } from '../user/user.service';
@@ -6,6 +6,8 @@ import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly quickAuthService: QuickAuthService,
@@ -14,14 +16,23 @@ export class AuthService {
   ) {}
 
   async loginWithQuickAuth(token: string): Promise<{ accessToken: string }> {
+    this.logger.log(`=== Quick Auth 로그인 시작 ===`);
+    this.logger.log(`받은 토큰 길이: ${token?.length}`);
+    
     try {
       const { fid } = await this.quickAuthService.verifyJwt(token);
+      this.logger.log(`FID 획득: ${fid}`);
+      
       const user = await this.userService.findOrCreate(fid);
+      this.logger.log(`사용자 조회/생성 완료: userId=${user.id}`);
       
       const accessToken = this.jwtService.sign({ userId: user.id, fid });
+      this.logger.log(`JWT 발급 완료`);
 
       return { accessToken };
     } catch (error) {
+      this.logger.error(`로그인 실패!`);
+      this.logger.error(`에러: ${error?.message}`);
       throw new UnauthorizedException('유효하지 않은 인증 토큰입니다.');
     }
   }
