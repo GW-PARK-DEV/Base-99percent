@@ -30,6 +30,9 @@ export class MessageResponseDto {
 
   @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   createdAt: Date;
+
+  @ApiProperty({ example: true, required: false })
+  isMine?: boolean;
 }
 
 export class ChatResponseDto {

@@ -72,7 +72,8 @@ export class ChatController {
   @ApiResponse({ status: 200, type: [ChatResponseDto] })
   @ApiResponse({ status: 401 })
   async getUserChats(@Request() req: any): Promise<ChatResponseDto[]> {
-    const chats = await this.chatService.getUserChatsWithLastMessage(await this.getUserId(req));
+    const userId = this.getUserId(req);
+    const chats = await this.chatService.getUserChatsWithLastMessage(userId);
     return chats.map(({ id, itemId, sellerId, buyerId, createdAt, lastMessage }) => ({
       id,
       itemId,
@@ -85,6 +86,7 @@ export class ChatController {
         senderId: lastMessage.senderId,
         message: lastMessage.message,
         createdAt: lastMessage.createdAt,
+        isMine: lastMessage.senderId === userId,
       } : null,
     }));
   }
@@ -101,7 +103,8 @@ export class ChatController {
     @Param('chatId', ParseIntPipe) chatId: number,
     @Request() req: any,
   ): Promise<ChatWithMessagesResponseDto> {
-    const chatWithMessages = await this.chatService.getChatWithMessages(chatId, await this.getUserId(req));
+    const userId = this.getUserId(req);
+    const chatWithMessages = await this.chatService.getChatWithMessages(chatId, userId);
     return {
       ...chatWithMessages,
       messages: chatWithMessages.messages.map(({ id, chatId, senderId, message, createdAt }) => ({
@@ -110,6 +113,7 @@ export class ChatController {
         senderId,
         message,
         createdAt,
+        isMine: senderId === userId,
       })),
     };
   }
@@ -126,13 +130,15 @@ export class ChatController {
     @Param('chatId', ParseIntPipe) chatId: number,
     @Request() req: any,
   ): Promise<MessageResponseDto[]> {
-    const messages = await this.chatService.getChatMessages(chatId, await this.getUserId(req));
+    const userId = this.getUserId(req);
+    const messages = await this.chatService.getChatMessages(chatId, userId);
     return messages.map(({ id, chatId, senderId, message, createdAt }) => ({
       id,
       chatId,
       senderId,
       message,
       createdAt,
+      isMine: senderId === userId,
     }));
   }
 }
