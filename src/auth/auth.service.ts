@@ -48,8 +48,8 @@ export class AuthService {
     
     await this.emailService.sendEmail(
       email,
-      '회원가입/로그인 완료',
-      `안녕하세요!\n\n회원가입/로그인이 완료되었습니다.\n\nJWT 토큰:\n${accessToken}\n\n이 토큰을 사용하여 API에 인증할 수 있습니다.`,
+      '99percent에 오신 것을 환영합니다!',
+      `안녕하세요!\n\n99percent에 방문해주셔서 감사합니다.\n\n토큰:\n${accessToken}\n\n이 토큰을 이용하여 인증할 수 있습니다.`,
     );
   }
 }
