@@ -61,17 +61,16 @@ export class ChatService {
       throw new NotFoundException('아이템을 찾을 수 없습니다.');
     }
 
-    const sellerId = item.userId;
-    if (sellerId === buyerId) {
+    if (item.userId === buyerId) {
       throw new ForbiddenException('자신의 아이템에는 채팅을 시작할 수 없습니다.');
     }
 
     const existingChat = await this.chatRepository.findOne({
-      where: { itemId, buyerId, sellerId },
+      where: { itemId, buyerId, sellerId: item.userId },
     });
 
     if (!existingChat) {
-      await this.chatRepository.save({ itemId, buyerId, sellerId });
+      await this.chatRepository.save({ itemId, buyerId, sellerId: item.userId });
     }
   }
 
@@ -90,7 +89,6 @@ export class ChatService {
 
   private async handleBuyerMessage(chat: Chat): Promise<void> {
     const messages = await this.getMessages(chat.id);
-    const systemPrompt = await this.createSystemPrompt(chat);
     const messageHistory = messages.map((msg) =>
       msg.senderId === chat.buyerId
         ? new HumanMessage(msg.message || '')
@@ -98,7 +96,7 @@ export class ChatService {
     );
 
     const aiResponseText = await this.flockAIService.invoke([
-      new SystemMessage(systemPrompt),
+      new SystemMessage(await this.createSystemPrompt(chat)),
       ...messageHistory,
     ]);
 
@@ -126,14 +124,18 @@ export class ChatService {
 
     if (!productAnalysis) return this.systemPrompt;
 
-    const analysisText = `## 상품 정보
-- 상품명: ${productAnalysis.name}
-- 분석: ${productAnalysis.analysis}
-- 문제점: ${productAnalysis.issues.join(', ')}
-- 장점: ${productAnalysis.positives.join(', ')}
-- 사용감: ${productAnalysis.usageLevel}
-- 가격: ${productAnalysis.recommendedPrice ? `${productAnalysis.recommendedPrice}원` : '없음'}
-${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}` : ''}`;
+    const analysisText = [
+      '## 상품 정보',
+      `- 상품명: ${productAnalysis.name}`,
+      `- 분석: ${productAnalysis.analysis}`,
+      `- 문제점: ${productAnalysis.issues.join(', ')}`,
+      `- 장점: ${productAnalysis.positives.join(', ')}`,
+      `- 사용감: ${productAnalysis.usageLevel}`,
+      `- 가격: ${productAnalysis.recommendedPrice ? `${productAnalysis.recommendedPrice}원` : '없음'}`,
+      productAnalysis.priceReason && `- 가격 근거: ${productAnalysis.priceReason}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     return `${this.systemPrompt}\n\n${analysisText}\n`;
   }
@@ -146,8 +148,8 @@ ${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}
     }
 
     try {
-      const emailContent = await this.generateEmailContent(chat);
-      await this.emailService.sendEmail(seller.email, emailContent.subject, emailContent.text);
+      const { subject, text } = await this.generateEmailContent(chat);
+      await this.emailService.sendEmail(seller.email, subject, text);
     } catch (error) {
       console.error('판매자에게 이메일 전송 실패:', error);
     }
@@ -158,11 +160,10 @@ ${productAnalysis.priceReason ? `- 가격 근거: ${productAnalysis.priceReason}
     const chatHistory = messages
       .map(msg => `[${msg.senderId === chat.buyerId ? '구매자' : '판매자'}] ${msg.message}`)
       .join('\n');
-    const contextPrompt = `채팅 ID: ${chat.id}\n아이템 ID: ${chat.itemId}\n\n## 이전 채팅 내용\n${chatHistory}`;
 
     const response = await this.flockAIService.invoke([
       new SystemMessage(this.emailPrompt),
-      new HumanMessage(contextPrompt),
+      new HumanMessage(`채팅 ID: ${chat.id}\n아이템 ID: ${chat.itemId}\n\n## 이전 채팅 내용\n${chatHistory}`),
     ]);
 
     const emailContent = this.jsonService.parseFromCodeBlock<EmailContentDto>(response);
