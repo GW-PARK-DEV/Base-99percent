@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, BadRequestException, HttpStatus, HttpCode } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, HttpStatus, HttpCode, HttpException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/auth.guard';
 import { TradeService } from './trade.service';
@@ -25,13 +25,14 @@ export class TradeController {
   @ApiResponse({ status: 402 })
   async createTrade(@Body() dto: CreateTradeDto, @Request() req: any): Promise<TradeResponseDto> {
     const paymentHeader = req.headers['x-payment'] as string;
+    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 
     if (!paymentHeader) {
-      const instructions = await this.tradeService.getPaymentInstructions(dto.itemId, req.url, req.method);
-      throw new BadRequestException(instructions);
+      const instructions = await this.tradeService.getPaymentInstructions(dto.itemId, fullUrl, req.method);
+      throw new HttpException(instructions, HttpStatus.PAYMENT_REQUIRED);
     }
 
-    const trade = await this.tradeService.createTrade(req.user.userId, dto, paymentHeader, req.url, req.method);
+    const trade = await this.tradeService.createTrade(req.user.userId, dto, paymentHeader, fullUrl, req.method);
 
     return {
       id: trade.id,
