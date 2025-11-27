@@ -106,5 +106,13 @@ export class ItemService {
     const items = await this.findByUserId(userId);
     return Promise.all(items.map(item => this.toItemResponseDto(item)));
   }
+
+  async findByIdWithDetails(id: number): Promise<ItemResponseDto> {
+    const item = await this.findById(id);
+    if (!item) {
+      throw new NotFoundException('아이템을 찾을 수 없습니다.');
+    }
+    return this.toItemResponseDto(item);
+  }
 }
 
