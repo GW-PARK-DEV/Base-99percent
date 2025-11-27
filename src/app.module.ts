@@ -14,6 +14,7 @@ import { RedisModule } from './redis/redis.module';
 import { QueueModule } from './queue/queue.module';
 import { S3Module } from './s3/s3.module';
 import { QuickAuthModule } from './quick-auth/quick-auth.module';
+import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ItemModule } from './item/item.module';
 import { TradeModule } from './trade/trade.module';
@@ -49,6 +50,7 @@ import { ChatModule } from './chat/chat.module';
     QueueModule,
     S3Module,
     QuickAuthModule,
+    AuthModule,
     UserModule,
     ItemModule,
     TradeModule,

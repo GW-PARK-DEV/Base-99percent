@@ -34,4 +34,17 @@ export class UserService {
     user.email = email;
     return this.userRepository.save(user);
   }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
+  async findOrCreateByEmail(email: string): Promise<User> {
+    let user = await this.findByEmail(email);
+    if (!user) {
+      user = this.userRepository.create({ email });
+      user = await this.userRepository.save(user);
+    }
+    return user;
+  }
 }

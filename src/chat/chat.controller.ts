@@ -11,9 +11,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
-import { QuickAuthGuard } from '../quick-auth/quick-auth.guard';
+import { JwtAuthGuard } from '../auth/auth.guard';
 import { ChatService } from './chat.service';
-import { UserService } from '../user/user.service';
 import {
   CreateChatDto,
   SendMessageDto,
@@ -28,16 +27,14 @@ import {
 export class ChatController {
   constructor(
     private readonly chatService: ChatService,
-    private readonly userService: UserService,
   ) {}
 
-  private async getUserId(req: any): Promise<number> {
-    const user = await this.userService.findOrCreate(req.user.fid);
-    return user.id;
+  private getUserId(req: any): number {
+    return req.user.userId;
   }
 
   @Post()
-  @UseGuards(QuickAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({ summary: '채팅 생성' })
@@ -51,7 +48,7 @@ export class ChatController {
   }
 
   @Post(':chatId/messages')
-  @UseGuards(QuickAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({ summary: '메시지 전송' })
@@ -69,7 +66,7 @@ export class ChatController {
   }
 
   @Get()
-  @UseGuards(QuickAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '사용자의 채팅 목록 조회' })
   @ApiResponse({ status: 200, type: [ChatResponseDto] })
@@ -86,7 +83,7 @@ export class ChatController {
   }
 
   @Get(':chatId')
-  @UseGuards(QuickAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '채팅 상세 조회' })
   @ApiResponse({ status: 200, type: ChatWithMessagesResponseDto })
@@ -111,7 +108,7 @@ export class ChatController {
   }
 
   @Get(':chatId/messages')
-  @UseGuards(QuickAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '채팅 메시지 목록 조회' })
   @ApiResponse({ status: 200, type: [MessageResponseDto] })

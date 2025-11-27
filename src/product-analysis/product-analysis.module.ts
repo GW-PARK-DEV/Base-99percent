@@ -15,6 +15,7 @@ import { QueueModule } from '../queue/queue.module';
 import { S3Module } from '../s3/s3.module';
 import { ItemModule } from '../item/item.module';
 import { UserModule } from '../user/user.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { UserModule } from '../user/user.module';
     QueueModule,
     S3Module,
     forwardRef(() => ItemModule),
-    UserModule,
+    forwardRef(() => UserModule),
+    forwardRef(() => AuthModule),
   ],
   controllers: [ProductAnalysisController],
   providers: [ProductAnalysisService, ProductPriceService, ProductAnalysisProcessor],

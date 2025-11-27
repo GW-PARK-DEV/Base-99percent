@@ -8,6 +8,7 @@ import { ProductAnalysisModule } from '../product-analysis/product-analysis.modu
 import { S3Module } from '../s3/s3.module';
 import { Base64Module } from '../base64/base64.module';
 import { UserModule } from '../user/user.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { UserModule } from '../user/user.module';
     forwardRef(() => ProductAnalysisModule),
     S3Module,
     Base64Module,
-    UserModule,
+    forwardRef(() => UserModule),
+    forwardRef(() => AuthModule),
   ],
   providers: [ItemService],
   controllers: [ItemController],

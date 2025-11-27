@@ -5,9 +5,8 @@ import { ProductAnalysisService } from './product-analysis.service';
 import { QueueService } from '../queue/queue.service';
 import { S3Service } from '../s3/s3.service';
 import { ProductAnalysisDto, ProductAnalysisResponseDto, ProductAnalysisWithPriceResponseDto } from './dto/product-analysis.dto';
-import { QuickAuthGuard } from '../quick-auth/quick-auth.guard';
+import { JwtAuthGuard } from '../auth/auth.guard';
 import { ItemService } from '../item/item.service';
-import { UserService } from '../user/user.service';
 
 @ApiTags('product-analysis')
 @Controller('product-analysis')
@@ -17,7 +16,6 @@ export class ProductAnalysisController {
     private readonly queueService: QueueService,
     private readonly s3Service: S3Service,
     private readonly itemService: ItemService,
-    private readonly userService: UserService,
   ) {}
 
   @Post('analyze')
@@ -65,7 +63,7 @@ export class ProductAnalysisController {
   }
 
   @Post('analyze-with-price')
-  @UseGuards(QuickAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('images', 10))
   @ApiBearerAuth()
   @ApiOperation({ summary: '물건 상태 분석 및 적정가 산정' })
@@ -113,14 +111,13 @@ export class ProductAnalysisController {
       throw new BadRequestException('이미지 파일이 필요합니다.');
     }
     
-    const user = await this.userService.findOrCreate(req.user.fid);
     const s3Paths = await Promise.all(
       files.map(file => {
         const key = `product/${Date.now()}-${Math.random().toString(36).substring(7)}-${file.originalname}`;
         return this.s3Service.uploadFile('snuai', key, file.buffer, file.mimetype).then(() => `s3://snuai/${key}`);
       })
     );
-    const item = await this.itemService.createItemWithImages(user.id, s3Paths);
+    const item = await this.itemService.createItemWithImages(req.user.userId, s3Paths);
     await this.queueService.getQueue('product-analysis').add('analyze', { s3Paths, dto, itemId: item.id });
     return true;
   }
@@ -142,7 +139,7 @@ export class ProductAnalysisController {
   }
 
   @Get()
-  @UseGuards(QuickAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '사용자의 모든 상품 분석 조회' })
   @ApiResponse({ status: 200, type: [ProductAnalysisWithPriceResponseDto] })
@@ -150,6 +147,6 @@ export class ProductAnalysisController {
   async getByUserId(
     @Request() req: any,
   ): Promise<ProductAnalysisWithPriceResponseDto[]> {
-    return this.productAnalysisService.findByUserId(req.user.fid);
+    return this.productAnalysisService.findByUserId(req.user.userId);
   }
 }

@@ -1,8 +1,7 @@
 import { Controller, Post, Body, UseGuards, Request, BadRequestException, HttpStatus, HttpCode } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
-import { QuickAuthGuard } from '../quick-auth/quick-auth.guard';
+import { JwtAuthGuard } from '../auth/auth.guard';
 import { TradeService } from './trade.service';
-import { UserService } from '../user/user.service';
 import { CreateTradeDto, TradeResponseDto } from './dto/trade.dto';
 
 @ApiTags('trade')
@@ -10,11 +9,10 @@ import { CreateTradeDto, TradeResponseDto } from './dto/trade.dto';
 export class TradeController {
   constructor(
     private readonly tradeService: TradeService,
-    private readonly userService: UserService,
   ) {}
 
   @Post()
-  @UseGuards(QuickAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiBearerAuth()
   @ApiOperation({ summary: '거래 생성 및 결제 처리' })
@@ -33,8 +31,7 @@ export class TradeController {
       throw new BadRequestException(instructions);
     }
 
-    const user = await this.userService.findOrCreate(req.user.fid);
-    const trade = await this.tradeService.createTrade(user.id, dto, paymentHeader, req.url, req.method);
+    const trade = await this.tradeService.createTrade(req.user.userId, dto, paymentHeader, req.url, req.method);
 
     return {
       id: trade.id,

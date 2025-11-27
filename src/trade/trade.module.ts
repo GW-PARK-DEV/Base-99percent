@@ -7,14 +7,16 @@ import { ItemModule } from '../item/item.module';
 import { UserModule } from '../user/user.module';
 import { PointModule } from '../point/point.module';
 import { ProductAnalysisModule } from '../product-analysis/product-analysis.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Trade]),
-    ItemModule,
-    UserModule,
-    PointModule,
+    forwardRef(() => ItemModule),
+    forwardRef(() => UserModule),
+    forwardRef(() => PointModule),
     forwardRef(() => ProductAnalysisModule),
+    forwardRef(() => AuthModule),
   ],
   providers: [TradeService],
   controllers: [TradeController],
