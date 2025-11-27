@@ -201,6 +201,20 @@ export class ChatService {
     });
   }
 
+  async getUserChatsWithLastMessage(userId: number): Promise<(Chat & { lastMessage: Message | null })[]> {
+    const chats = await this.getUserChats(userId);
+    
+    return Promise.all(
+      chats.map(async (chat) => {
+        const lastMessage = await this.messageRepository.findOne({
+          where: { chatId: chat.id },
+          order: { createdAt: 'DESC' },
+        });
+        return { ...chat, lastMessage };
+      })
+    );
+  }
+
   async getChatWithMessages(chatId: number, userId: number) {
     const chat = await this.findChatWithAuth(chatId, userId);
     const messages = await this.getMessages(chatId);

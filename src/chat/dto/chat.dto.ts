@@ -15,23 +15,6 @@ export class SendMessageDto {
   message: string;
 }
 
-export class ChatResponseDto {
-  @ApiProperty({ example: 1 })
-  id: number;
-
-  @ApiProperty({ example: 1 })
-  itemId: number;
-
-  @ApiProperty({ example: 1 })
-  sellerId: number;
-
-  @ApiProperty({ example: 2 })
-  buyerId: number;
-
-  @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
-  createdAt: Date;
-}
-
 export class MessageResponseDto {
   @ApiProperty({ example: 1 })
   id: number;
@@ -47,6 +30,26 @@ export class MessageResponseDto {
 
   @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   createdAt: Date;
+}
+
+export class ChatResponseDto {
+  @ApiProperty({ example: 1 })
+  id: number;
+
+  @ApiProperty({ example: 1 })
+  itemId: number;
+
+  @ApiProperty({ example: 1 })
+  sellerId: number;
+
+  @ApiProperty({ example: 2 })
+  buyerId: number;
+
+  @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
+  createdAt: Date;
+
+  @ApiProperty({ type: MessageResponseDto, nullable: true, required: false })
+  lastMessage?: MessageResponseDto | null;
 }
 
 export class ChatWithMessagesResponseDto extends ChatResponseDto {

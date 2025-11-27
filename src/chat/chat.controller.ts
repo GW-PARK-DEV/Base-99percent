@@ -72,13 +72,20 @@ export class ChatController {
   @ApiResponse({ status: 200, type: [ChatResponseDto] })
   @ApiResponse({ status: 401 })
   async getUserChats(@Request() req: any): Promise<ChatResponseDto[]> {
-    const chats = await this.chatService.getUserChats(await this.getUserId(req));
-    return chats.map(({ id, itemId, sellerId, buyerId, createdAt }) => ({
+    const chats = await this.chatService.getUserChatsWithLastMessage(await this.getUserId(req));
+    return chats.map(({ id, itemId, sellerId, buyerId, createdAt, lastMessage }) => ({
       id,
       itemId,
       sellerId,
       buyerId,
       createdAt,
+      lastMessage: lastMessage ? {
+        id: lastMessage.id,
+        chatId: lastMessage.chatId,
+        senderId: lastMessage.senderId,
+        message: lastMessage.message,
+        createdAt: lastMessage.createdAt,
+      } : null,
     }));
   }
 
