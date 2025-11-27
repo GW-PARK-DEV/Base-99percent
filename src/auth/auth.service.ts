@@ -41,20 +41,5 @@ export class AuthService {
       `안녕하세요!\n\n회원가입/로그인이 완료되었습니다.\n\nJWT 토큰:\n${accessToken}\n\n이 토큰을 사용하여 API에 인증할 수 있습니다.`,
     );
   }
-
-  async sendJwtToEmail(userId: number): Promise<void> {
-    const user = await this.userService.findById(userId);
-    if (!user?.email) {
-      throw new UnauthorizedException('이메일이 등록되지 않은 사용자입니다.');
-    }
-
-    const accessToken = this.jwtService.sign({ userId: user.id });
-    
-    await this.emailService.sendEmail(
-      user.email,
-      'JWT 토큰 발급',
-      `안녕하세요!\n\n새로운 JWT 토큰이 발급되었습니다.\n\nJWT 토큰:\n${accessToken}\n\n이 토큰을 사용하여 API에 인증할 수 있습니다.`,
-    );
-  }
 }
 

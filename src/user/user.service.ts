@@ -42,7 +42,12 @@ export class UserService {
   async findOrCreateByEmail(email: string): Promise<User> {
     let user = await this.findByEmail(email);
     if (!user) {
-      user = this.userRepository.create({ email });
+      // 타임스탬프 + 랜덤 숫자로 고유 id 생성
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000000);
+      const id = Number(`${timestamp}${random}`.slice(0, 15));
+      
+      user = this.userRepository.create({ id, email });
       user = await this.userRepository.save(user);
     }
     return user;
