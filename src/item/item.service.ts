@@ -22,7 +22,7 @@ export class ItemService {
   ) {}
 
   async create(userId: number): Promise<Item> {
-    const item = this.itemRepository.create({ userId, status: ItemStatus.ACTIVE });
+    const item = this.itemRepository.create({ userId, status: ItemStatus.PENDING });
     return this.itemRepository.save(item);
   }
 
@@ -35,7 +35,7 @@ export class ItemService {
   }
 
   async createItemWithImages(userId: number, imageUrls: string[]): Promise<Item> {
-    const item = await this.itemRepository.save({ userId, status: ItemStatus.ACTIVE });
+    const item = await this.itemRepository.save({ userId, status: ItemStatus.PENDING });
     await this.itemImageRepository.save(
       imageUrls.map(imageUrl => ({ itemId: item.id, imageUrl }))
     );
@@ -70,6 +70,15 @@ export class ItemService {
       throw new NotFoundException('아이템을 찾을 수 없습니다.');
     }
     item.status = ItemStatus.SOLD;
+    return this.itemRepository.save(item);
+  }
+
+  async markAsActive(itemId: number): Promise<Item> {
+    const item = await this.findById(itemId);
+    if (!item) {
+      throw new NotFoundException('아이템을 찾을 수 없습니다.');
+    }
+    item.status = ItemStatus.ACTIVE;
     return this.itemRepository.save(item);
   }
   

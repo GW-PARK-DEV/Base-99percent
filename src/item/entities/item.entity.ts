@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
 export enum ItemStatus {
+  PENDING = 'pending',
   ACTIVE = 'active',
   SOLD = 'sold',
 }
@@ -16,7 +17,7 @@ export class Item {
   @Column({
     type: 'enum',
     enum: ItemStatus,
-    default: ItemStatus.ACTIVE,
+    default: ItemStatus.PENDING,
   })
   status: ItemStatus;
 
