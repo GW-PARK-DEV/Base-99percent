@@ -1,0 +1,125 @@
+{
+  "family": "99percent",
+  "networkMode": "awsvpc",
+  "cpu": "1024",
+  "memory": "2048",
+  "requiresCompatibilities": ["FARGATE"],
+  "executionRoleArn": "arn:aws:iam::891612558210:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::891612558210:role/ecsTaskRole-Admin",
+  "containerDefinitions": [
+    {
+      "name": "99percent",
+      "image": "891612558210.dkr.ecr.ap-northeast-2.amazonaws.com/99percent:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/99percent",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      },
+      "environment": [
+        {
+          "name": "DB_HOST",
+          "value": "43.202.77.67"
+        },
+        {
+          "name": "DB_PORT",
+          "value": "5432"
+        },
+        {
+          "name": "DB_USERNAME",
+          "value": "urse"
+        },
+        {
+          "name": "DB_PASSWORD",
+          "value": "myordpassw"
+        },
+        {
+          "name": "DB_DATABASE",
+          "value": "postgres"
+        },
+        {
+          "name": "REDIS_HOST",
+          "value": "43.202.77.67"
+        },
+        {
+          "name": "REDIS_PORT",
+          "value": "6379"
+        },
+        {
+          "name": "REDIS_PASSWORD",
+          "value": "myordpassw*"
+        },
+        {
+          "name": "AWS_REGION",
+          "value": "ap-northeast-2"
+        },
+        {
+          "name": "AWS_ACCESS_KEY_ID",
+          "value": "AKIA47GB76OBFJH5HLZY"
+        },
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "value": "Y22ruMbqCW+8vrTISOTXaeDftVDhi2Ww7O4l7khY"
+        },
+        {
+          "name": "OPENROUTER_API_KEY",
+          "value": "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"
+        },
+        {
+          "name": "OPENROUTER_BASE_URL",
+          "value": "https://openrouter.ai/api/v1"
+        },
+        {
+          "name": "FLOCK_API_KEY",
+          "value": "sk-jgIgBJDhBuFNO0QkPzngDg"
+        },
+        {
+          "name": "FLOCK_BASE_URL",
+          "value": "https://api.flock.io/v1"
+        },
+        {
+          "name": "GOOGLE_API_KEY",
+          "value": "AIzaSyCBEZLOEk8fuWScM_jEEAoehqcwVnkCfz0"
+        },
+        {
+          "name": "GOOGLE_SEARCH_ENGINE_ID",
+          "value": "562edfad25a0746c6"
+        },
+        {
+          "name": "X402_FACILITATOR_URL",
+          "value": "https://x402.org/facilitator"
+        },
+        {
+          "name": "X402_SERVER_WALLET_ADDRESS",
+          "value": "0x47FfE238B785154c4ba8A70BcE53f8CDEa038878"
+        },
+        {
+          "name": "X402_NETWORK",
+          "value": "base-sepolia"
+        },
+        {
+          "name": "QUICK_AUTH_DOMAIN",
+          "value": "https://99percent.gw-park.com"
+        },
+        {
+          "name": "GMAIL_USER",
+          "value": "semal2626@gmail.com"
+        },
+        {
+          "name": "GMAIL_APP_PASSWORD",
+          "value": "fblh rrek bzgq psik"
+        }
+      ]
+    }
+  ]
+}
