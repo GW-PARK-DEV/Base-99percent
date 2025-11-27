@@ -109,7 +109,7 @@
         },
         {
           "name": "QUICK_AUTH_DOMAIN",
-          "value": "https://99percent-eight.vercel.app"
+          "value": "99percent-eight.vercel.app"
         },
         {
           "name": "GMAIL_USER",
