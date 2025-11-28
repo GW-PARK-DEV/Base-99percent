@@ -81,7 +81,6 @@ export class ChatService {
   ): Promise<void> {
     const chat = await this.findChatWithAuth(chatId, senderId);
     await this.messageRepository.save({ chatId, senderId, message });
-
     if (chat.buyerId === senderId) {
       await this.handleBuyerMessage(chat);
     }
